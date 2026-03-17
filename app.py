@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import streamlit as st # 🚀 웹사이트를 만들어줄 마법 도구!
 
 # 🎨 윈도우 한글 폰트 설정
-plt.rc('font', family='Malgun Gothic') 
+plt.rc('font', family='NanumGothic') 
 plt.rcParams['axes.unicode_minus'] = False 
 
 # ==========================================
