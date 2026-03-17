@@ -2,4 +2,4 @@ OpenDartReader
 pandas
 yfinance
 matplotlib
-streamlit
+streamlit>=1.32.0
