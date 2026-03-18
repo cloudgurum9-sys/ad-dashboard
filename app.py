@@ -1,13 +1,3 @@
-민준님, 탁월한 선택입니다!
-
-회계/재무팀은 수많은 숫자를 다루지만, 최종 보고는 언제나 "비전문가인 경영진이나 타 부서도 한눈에 이해할 수 있게" 해야 합니다.  **레이더 차트(Radar Chart)**는 기업의 강점과 약점을 마치 '게임 캐릭터 능력치'처럼 직관적으로 보여주기 때문에, 민준님의 **'데이터 시각화 및 의사소통 역량'**을 극적으로 어필할 수 있는 최고의 도구입니다.
-
-이미 대시보드에 모든 데이터가 준비되어 있으니, Plotly의 Scatterpolar 기능을 활용해 레이더 차트를 멋지게 띄워보겠습니다.
-
-1️⃣ app.py 전체 코드 (육각형 기업 분석: 레이더 차트 탑재)
-기존 코드에 **기업별 재무 캐릭터 육각형(방사형그래프)**을 그리는 함수와 시각화 섹션을 추가했습니다. 전체를 복사해서 덮어쓰기 하세요!
-
-Python
 import streamlit as st
 import pandas as pd
 import yfinance as yf
@@ -20,7 +10,7 @@ import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 from fpdf import FPDF
 
-# --- 1. 산업별 통합 데이터베이스 (데이터는 이전과 동일) ---
+# --- 1. 산업별 통합 데이터베이스 ---
 INDUSTRY_DATA = {
     "광고업": {
         "companies": {"제일기획": "030000.KS", "이노션": "214320.KS", "나스미디어": "089600.KQ", "에코마케팅": "230360.KQ", "인크로스": "216050.KQ"},
@@ -141,23 +131,20 @@ if selected_names:
     st.subheader("🕸️ 육각형 기업 분석 (Radar Chart): 다면적 역량 평가")
     st.write("선택한 기업들의 **수익성, 활동성, 안정성, 현금창출력, 성장성**을 거미줄 그래프로 한눈에 비교합니다.")
     
-    # 레이더 차트용 데이터 정제 (스케일링 - 0~100 사이로 변환)
     categories = ['수익성(순이익률)', '활동성(자산회전율x100)', '안정성(100-부채비율/2)', '현금창출력(%)', 'ROE(%)']
     
     fig_radar = go.Figure()
     
     for name in selected_names:
         row = df_finance[df_finance['기업명'] == name].iloc[0]
-        # 스케일링 로직: 시각화를 위해 대략적인 범위를 0~100으로 맞춤
         values = [
-            row['순이익률(%)'] * 2.5,        # 예: 순이익률 40% -> 100점
-            row['총자산회전율(배)'] * 80,    # 예: 자산회전율 1.25배 -> 100점
-            (200 - row['부채비율(%)']) / 2,   # 예: 부채비율 0% -> 100점, 200% -> 0점
-            row['현금창출력(%)'] / 1.5,     # 예: 현금창출력 150% -> 100점
-            row['ROE(%)'] * 2               # 예: ROE 50% -> 100점
+            row['순이익률(%)'] * 2.5,        
+            row['총자산회전율(배)'] * 80,    
+            (200 - row['부채비율(%)']) / 2,   
+            row['현금창출력(%)'] / 1.5,     
+            row['ROE(%)'] * 2               
         ]
         
-        # 그래프를 닫기 위해 첫 번째 값을 마지막에 추가
         values.append(values[0])
         categories_closed = categories + [categories[0]]
         
@@ -170,14 +157,14 @@ if selected_names:
     
     fig_radar.update_layout(
         polar=dict(
-            radialaxis=dict(visible=True, range=[0, 100]) # 레이더 차트의 범위 설정
+            radialaxis=dict(visible=True, range=[0, 100])
         ),
         legend=dict(orientation="h", y=1.1),
         template='plotly_white'
     )
     st.plotly_chart(fig_radar, use_container_width=True)
 
-    # [C] 듀퐁 분석 시각화 (하이라이트!)
+    # [C] 듀퐁 분석 시각화
     st.markdown("---")
     st.subheader("🔬 듀퐁 분석 (DuPont Analysis): ROE 분해")
     st.write("ROE가 높은 원인이 **수익성(마진)** 때문인지, **활동성(자산회전)** 때문인지, **레버리지(부채)** 때문인지 분석합니다.")
@@ -190,7 +177,7 @@ if selected_names:
     fig_dupont.update_layout(barmode='group', template='plotly_white', legend=dict(orientation="h", y=1.1))
     st.plotly_chart(fig_dupont, use_container_width=True)
 
-    # [D] 주가 차트 생략 없이 깔끔하게 배치
+    # [D] 주가 차트 및 현금흐름 차트
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("📈 주가 흐름 (1년)")
