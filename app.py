@@ -7,20 +7,37 @@ import os
 import requests
 from bs4 import BeautifulSoup
 
-# 1. 뉴스 가져오기 함수 (캐싱 적용: 30분)
+# 뉴스 가져오기 함수 (더 강력한 사람인 척 하기 추가)
 @st.cache_data(ttl=1800)
 def get_recent_news(company_name):
     try:
+        # 네이버 뉴스 검색 URL
         url = f"https://search.naver.com/search.naver?where=news&query={company_name}"
-        headers = {"User-Agent": "Mozilla/5.0"}
-        resp = requests.get(url, headers=headers)
+        
+        # 브라우저인 척 하는 '가면'을 더 정교하게 씁니다.
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        }
+        
+        resp = requests.get(url, headers=headers, timeout=5) # 5초 안에 응답 안 오면 포기
         soup = BeautifulSoup(resp.text, "html.parser")
-        news_items = soup.select(".news_tit")[:5]
+        
+        # 네이버 뉴스 제목의 새로운 클래스명 대응 (뉴스 제목 태그)
+        news_items = soup.select(".news_tit")
+        
+        if not news_items:
+            # 만약 위 코드로 안 되면 다른 태그로도 시도 (네이버의 변화 무쌍함 대비)
+            news_items = soup.find_all('a', class_='news_tit')
+
         results = []
-        for item in news_items:
-            results.append({"title": item.get("title"), "link": item.get("href")})
+        for item in news_items[:5]: # 딱 5개만
+            title = item.get_text()
+            link = item.get("href")
+            results.append({"title": title, "link": link})
+            
         return results
-    except:
+    except Exception as e:
+        print(f"Error fetching news for {company_name}: {e}")
         return []
 
 # 2. 캐싱 설정: 주가 데이터 로딩 속도 향상
