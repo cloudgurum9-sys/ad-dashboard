@@ -7,37 +7,41 @@ import os
 import requests
 from bs4 import BeautifulSoup
 
-# 뉴스 가져오기 함수 (더 강력한 사람인 척 하기 추가)
 @st.cache_data(ttl=1800)
 def get_recent_news(company_name):
     try:
-        # 네이버 뉴스 검색 URL
-        url = f"https://search.naver.com/search.naver?where=news&query={company_name}"
+        # 네이버 뉴스 검색 결과 페이지 (최신순 정렬 파라미터 &sort=1 추가)
+        url = f"https://search.naver.com/search.naver?where=news&query={company_name}&sort=1"
         
-        # 브라우저인 척 하는 '가면'을 더 정교하게 씁니다.
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+            "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7"
         }
         
-        resp = requests.get(url, headers=headers, timeout=5) # 5초 안에 응답 안 오면 포기
+        resp = requests.get(url, headers=headers, timeout=10)
+        
+        # 만약 네이버에서 차단했다면 상태 코드가 200이 아님
+        if resp.status_code != 200:
+            return []
+
         soup = BeautifulSoup(resp.text, "html.parser")
         
-        # 네이버 뉴스 제목의 새로운 클래스명 대응 (뉴스 제목 태그)
-        news_items = soup.select(".news_tit")
-        
-        if not news_items:
-            # 만약 위 코드로 안 되면 다른 태그로도 시도 (네이버의 변화 무쌍함 대비)
-            news_items = soup.find_all('a', class_='news_tit')
+        # 네이버 뉴스 제목을 찾는 가장 최신 태그 규칙입니다.
+        news_items = soup.find_all("a", class_="news_tit")
 
         results = []
-        for item in news_items[:5]: # 딱 5개만
-            title = item.get_text()
+        for item in news_items[:5]:
+            title = item.get("title") # title 속성에 전체 제목이 들어있는 경우가 많습니다.
+            if not title:
+                title = item.get_text()
             link = item.get("href")
             results.append({"title": title, "link": link})
             
         return results
     except Exception as e:
-        print(f"Error fetching news for {company_name}: {e}")
+        # 에러가 나면 로그만 찍고 빈 리스트 반환
+        print(f"News error: {e}")
         return []
 
 # 2. 캐싱 설정: 주가 데이터 로딩 속도 향상
