@@ -3,3 +3,5 @@ pandas
 yfinance
 matplotlib
 streamlit>=1.32.0
+beautifulsoup4
+requests
