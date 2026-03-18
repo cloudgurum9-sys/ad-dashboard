@@ -7,7 +7,7 @@ import os
 import requests
 from bs4 import BeautifulSoup
 
-# --- 1. 데이터 베이스 확장 (업종 추가하고 싶을 때 여기만 수정하세요!) ---
+# --- 1. 데이터 베이스 확장 (새로운 업종 데이터 추가) ---
 INDUSTRY_DATA = {
     "광고업": {
         "companies": {"제일기획": "030000.KS", "이노션": "214320.KS", "나스미디어": "089600.KQ", "에코마케팅": "230360.KQ", "인크로스": "216050.KQ"},
@@ -24,21 +24,36 @@ INDUSTRY_DATA = {
             "매출액(억)": [2580000, 440000, 1590, 1700],
             "영업이익(억)": [65000, 27000, 350, 950]
         }
+    },
+    "게임": {
+        "companies": {"컴투스": "078340.KQ", "크래프톤": "259960.KS", "넷마블": "251270.KS", "엔씨소프트": "036570.KS", "카카오게임즈": "293490.KQ"},
+        "finance": {
+            "기업명": ["컴투스", "크래프톤", "넷마블", "엔씨소프트", "카카오게임즈"],
+            "매출액(억)": [6938, 27098, 26638, 15781, 7388],
+            "영업이익(억)": [24, 11825, 2156, -1092, 65]
+        }
+    },
+    "타이어": {
+        "companies": {"한국타이어앤테크놀로지": "161390.KS", "금호타이어": "073240.KS", "넥센타이어": "002350.KS"},
+        "finance": {
+            "기업명": ["한국타이어앤테크놀로지", "금호타이어", "넥센타이어"],
+            "매출액(억)": [212022, 41000, 27000],
+            "영업이익(억)": [18425, 3800, 1800]
+        }
     }
 }
 
-# --- 2. 핵심 함수들 ---
+# --- 2. 핵심 함수 (뉴스/주가 데이터) ---
 @st.cache_data(ttl=1800)
 def get_company_news_final(company_name):
     results = []
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"}
+    headers = {"User-Agent": "Mozilla/5.0"}
     try:
         url = f"https://search.naver.com/search.naver?where=news&query={company_name}&sort=1"
         resp = requests.get(url, headers=headers, timeout=5)
         if resp.status_code == 200:
             soup = BeautifulSoup(resp.text, "html.parser")
-            news_items = soup.select(".news_tit")
-            for item in news_items[:5]:
+            for item in soup.select(".news_tit")[:5]:
                 results.append({"title": item.get_text(), "link": item.get("href")})
     except: pass
     return results
@@ -56,54 +71,46 @@ if os.path.exists(font_path):
     font_prop = fm.FontProperties(fname=font_path)
     plt.rc('font', family=font_prop.get_name())
 plt.rcParams['axes.unicode_minus'] = False
-st.set_page_config(page_title="산업별 재무 분석 포털", layout="wide")
+st.set_page_config(page_title="산업 분석 포털", layout="wide")
 
 st.title("📊 대한민국 주요 산업 분석 대시보드")
+st.write("다양한 산업군의 재무 지표와 실시간 뉴스, 주가 흐름을 한눈에 비교하세요.")
 st.markdown("---")
 
-# --- 3. 사이드바 (업종 선택 로직) ---
-st.sidebar.header("📂 업종 및 기업 선택")
+# --- 3. 사이드바 인터페이스 ---
+st.sidebar.header("⚙️ 분석 설정")
+selected_industry = st.sidebar.selectbox("1단계: 산업군 선택", list(INDUSTRY_DATA.keys()))
+current_data = INDUSTRY_DATA[selected_industry]
+company_dict = current_data["companies"]
 
-# [업종 선택 박스]
-selected_industry = st.sidebar.selectbox("1. 분석 업종 선택", list(INDUSTRY_DATA.keys()))
-
-# 선택된 업종의 데이터만 필터링
-current_industry = INDUSTRY_DATA[selected_industry]
-company_dict = current_industry["companies"]
-
-# [기업 선택 멀티셀렉트]
 selected_names = st.sidebar.multiselect(
-    f"2. {selected_industry} 기업 선택",
+    f"2단계: {selected_industry} 기업 선택",
     options=list(company_dict.keys()),
     default=list(company_dict.keys())
 )
 
-# --- 4. 메인 화면 대시보드 출력 ---
+# --- 4. 대시보드 출력 ---
 if not selected_names:
-    st.warning("분석할 기업을 선택해 주세요!")
+    st.info("비교할 기업을 왼쪽 사이드바에서 선택해 주세요.")
 else:
     selected_tickers = [company_dict[name] for name in selected_names]
     
-    # [A] 수익성 지표 출력
-    st.subheader(f"💰 {selected_industry} 수익성 지표 (2025 예상)")
-    finance_raw = current_industry["finance"]
-    df_finance = pd.DataFrame(finance_raw)
-    
-    # 선택된 기업만 필터링 후 영업이익률 계산
+    # [A] 수익성 비교
+    st.subheader(f"💰 {selected_industry} 수익성 지표 비교")
+    df_finance = pd.DataFrame(current_data["finance"])
     df_finance = df_finance[df_finance['기업명'].isin(selected_names)]
     df_finance['영업이익률(%)'] = (df_finance['영업이익(억)'] / df_finance['매출액(억)'] * 100).round(2)
     st.table(df_finance.sort_values(by='영업이익률(%)', ascending=False))
 
     # [B] 주가 차트
-    st.subheader(f"📈 {selected_industry} 최근 1년 주가 흐름")
-    with st.spinner('차트를 불러오는 중...'):
-        stock_df = get_stock_data(selected_tickers)
-        if not stock_df.empty:
-            st.line_chart(stock_df)
+    st.subheader(f"📈 {selected_industry} 주가 트렌드 (1년)")
+    stock_df = get_stock_data(selected_tickers)
+    if not stock_df.empty:
+        st.line_chart(stock_df)
 
-    # [C] 실시간 뉴스
+    # [C] 실시간 뉴스 탭
     st.markdown("---")
-    st.subheader(f"📰 {selected_industry} 최신 이슈")
+    st.subheader(f"📰 {selected_industry} 최신 주요 뉴스")
     tabs = st.tabs(selected_names)
     for i, name in enumerate(selected_names):
         with tabs[i]:
@@ -112,9 +119,8 @@ else:
                 for news in news_list:
                     st.write(f"🔗 [{news['title']}]({news['link']})")
             else:
-                st.write(f"⚠️ '{name}' 뉴스를 불러오지 못했습니다.")
-                naver_link = f"https://search.naver.com/search.naver?where=news&query={name}"
-                st.link_button(f"👉 네이버에서 '{name}' 뉴스 직접 보기", naver_link)
+                st.info(f"'{name}' 뉴스를 가져오는 중입니다. 잠시 후 다시 확인하세요.")
+                st.link_button(f"🔍 네이버에서 '{name}' 뉴스 직접 보기", f"https://search.naver.com/search.naver?where=news&query={name}")
 
 st.markdown("---")
-st.caption(f"✅ Update: {selected_industry} 데이터 분석 모듈 가동 중 | 2026-03-18")
+st.caption(f"본 서비스는 공개된 데이터를 기반으로 하며, 실제 투자 시 정보의 정확성을 재확인하시기 바랍니다. | Updated 2026-03-18")
