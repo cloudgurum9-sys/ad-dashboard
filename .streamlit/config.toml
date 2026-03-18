@@ -1,6 +1,6 @@
 [theme]
 primaryColor="#FF4B4B"
-backgroundColor="#FFFFFF"
-secondaryBackgroundColor="#F0F2F6"
-textColor="#262730"
+backgroundColor="#0E1117"  # <--- 이 부분을 어두운 색으로 변경 (다크모드 강제 적용)
+secondaryBackgroundColor="#262730"
+textColor="#FAFAFA"
 font="sans serif"
