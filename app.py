@@ -2,14 +2,15 @@ import streamlit as st
 import pandas as pd
 import yfinance as yf
 import plotly.express as px
+import plotly.graph_objects as go
 import os
 import requests
 from bs4 import BeautifulSoup
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
-from fpdf import FPDF  # PDF 생성을 위한 라이브러리 추가
+from fpdf import FPDF
 
-# --- 1. 산업별 통합 데이터베이스 ---
+# --- 1. 산업별 통합 데이터베이스 (듀퐁 분석 데이터 추가) ---
 INDUSTRY_DATA = {
     "광고업": {
         "companies": {"제일기획": "030000.KS", "이노션": "214320.KS", "나스미디어": "089600.KQ", "에코마케팅": "230360.KQ", "인크로스": "216050.KQ"},
@@ -19,6 +20,8 @@ INDUSTRY_DATA = {
             "영업이익(억)": [3100, 1500, 300, 600, 150],
             "영업현금흐름(억)": [3500, 1600, 280, 650, 160],
             "부채비율(%)": [110, 80, 45, 35, 25],
+            "순이익률(%)": [6.5, 5.8, 12.0, 14.5, 11.0],      # 듀퐁 분석: 수익성
+            "총자산회전율(배)": [1.11, 1.0, 0.73, 0.94, 1.02], # 듀퐁 분석: 활동성
             "ROE(%)": [15.2, 10.5, 12.8, 18.5, 14.1]
         }
     },
@@ -30,6 +33,8 @@ INDUSTRY_DATA = {
             "영업이익(억)": [650000, 270000, 2514, 1182],
             "영업현금흐름(억)": [820000, 350000, 2800, 1300],
             "부채비율(%)": [25, 55, 15, 10],
+            "순이익률(%)": [12.5, 15.0, 38.0, 42.0],
+            "총자산회전율(배)": [0.52, 0.65, 0.27, 0.76],
             "ROE(%)": [8.2, 15.5, 12.0, 35.5]
         }
     },
@@ -41,6 +46,8 @@ INDUSTRY_DATA = {
             "영업이익(억)": [190, 11825, 3525, 161, -396],
             "영업현금흐름(억)": [450, 13500, 4200, 1200, 200],
             "부채비율(%)": [45, 15, 65, 35, 50],
+            "순이익률(%)": [2.1, 35.0, 4.0, 1.5, -4.5],
+            "총자산회전율(배)": [0.82, 0.55, 0.83, 0.59, 0.60],
             "ROE(%)": [2.5, 22.1, 5.5, 1.2, -5.2]
         }
     },
@@ -52,50 +59,44 @@ INDUSTRY_DATA = {
             "영업이익(억)": [18425, 3800, 1800],
             "영업현금흐름(억)": [22000, 4500, 2400],
             "부채비율(%)": [75, 210, 150],
+            "순이익률(%)": [7.5, 4.2, 3.5],
+            "총자산회전율(배)": [0.95, 1.15, 0.97],
             "ROE(%)": [12.5, 15.2, 8.5]
         }
     }
 }
 
-# --- 2. 기본 폰트 설정 ---
+# --- 2. 폰트 및 리포트 함수 ---
 font_path = '/usr/share/fonts/truetype/nanum/NanumGothic.ttf'
 if os.path.exists(font_path):
     font_prop = fm.FontProperties(fname=font_path)
     plt.rc('font', family=font_prop.get_name())
 
-# --- 3. PDF 리포트 생성 함수 ---
 def create_pdf_report(industry, df, font_path):
     pdf = FPDF()
     pdf.add_page()
-    
-    # 한글 폰트 적용 (에러 방지용 Fallback 포함)
     if os.path.exists(font_path):
         pdf.add_font("NanumGothic", "", font_path)
         pdf.set_font("NanumGothic", "", 16)
     else:
         pdf.set_font("Helvetica", "", 16)
         
-    # 제목 작성
-    pdf.cell(0, 10, f"[{industry}] Financial Health & Cash Flow Report", ln=True, align='C')
+    pdf.cell(0, 10, f"[{industry}] Financial Health & DuPont Analysis", ln=True, align='C')
     pdf.ln(10)
     
-    # 본문 폰트 크기 변경
     if os.path.exists(font_path):
         pdf.set_font("NanumGothic", "", 11)
     
-    # 데이터 순회하며 PDF에 작성
     for index, row in df.iterrows():
-        pdf.cell(0, 8, f"▶ 기업명: {row['기업명']}", ln=True)
-        pdf.cell(0, 8, f"   - 매출액: {row['매출액(억)']}억 | 영업이익: {row['영업이익(억)']}억 | 현금흐름(OCF): {row['영업현금흐름(억)']}억", ln=True)
-        pdf.cell(0, 8, f"   - 현금창출력: {row['현금창출력(%)']}% | 부채비율: {row['부채비율(%)']}% | ROE: {row['ROE(%)']}%", ln=True)
-        pdf.ln(5) # 간격 띄우기
-        
-    # PDF를 byte 형태로 반환
+        pdf.cell(0, 8, f"▶ {row['기업명']}", ln=True)
+        pdf.cell(0, 8, f"   - 이익 및 현금: 매출 {row['매출액(억)']}억 | 현금창출력 {row['현금창출력(%)']}%", ln=True)
+        pdf.cell(0, 8, f"   - 듀퐁 분석(ROE {row['ROE(%)']}%): 순이익률 {row['순이익률(%)']}% | 자산회전율 {row['총자산회전율(배)']}배 | 재무레버리지 {row['재무레버리지(배)']}배", ln=True)
+        pdf.ln(5)
     return bytes(pdf.output())
 
-# --- 4. 대시보드 UI ---
-st.set_page_config(page_title="전문 재무 분석 대시보드", layout="wide")
-st.title("📊 산업별 재무분석 및 이익의 질(Quality of Earnings)")
+# --- 3. 대시보드 UI ---
+st.set_page_config(page_title="고급 재무 분석 대시보드", layout="wide")
+st.title("📊 산업별 고급 재무분석 (현금흐름 & 듀퐁 분석)")
 st.markdown("---")
 
 selected_industry = st.sidebar.selectbox("📂 분석 업종 선택", list(INDUSTRY_DATA.keys()))
@@ -111,39 +112,51 @@ selected_names = st.sidebar.multiselect(
 if selected_names:
     df_finance = pd.DataFrame(current_data["finance"])
     df_finance = df_finance[df_finance['기업명'].isin(selected_names)]
-    df_finance['영업이익률(%)'] = (df_finance['영업이익(억)'] / df_finance['매출액(억)'] * 100).round(2)
-    df_finance['현금창출력(%)'] = (df_finance['영업현금흐름(억)'] / df_finance['영업이익(억)'] * 100).round(1)
-
-    # [다운로드 버튼 영역 추가]
-    st.subheader(f"📑 {selected_industry} 심층 재무 분석")
     
-    # PDF 생성 및 다운로드 버튼
-    pdf_bytes = create_pdf_report(selected_industry, df_finance.sort_values(by='현금창출력(%)', ascending=False), font_path)
-    st.download_button(
-        label="📄 PDF 리포트 다운로드",
-        data=pdf_bytes,
-        file_name=f"{selected_industry}_재무분석_리포트.pdf",
-        mime="application/pdf"
-    )
+    # 지표 자동 계산
+    df_finance['현금창출력(%)'] = (df_finance['영업현금흐름(억)'] / df_finance['영업이익(억)'] * 100).round(1)
+    df_finance['재무레버리지(배)'] = (1 + (df_finance['부채비율(%)'] / 100)).round(2) # 듀퐁 분석: 재무구조
 
-    # 테이블 출력
-    cols = ['기업명', '매출액(억)', '영업이익(억)', '영업현금흐름(억)', '현금창출력(%)', '부채비율(%)', 'ROE(%)']
-    st.table(df_finance[cols].sort_values(by='현금창출력(%)', ascending=False))
+    # [PDF 다운로드]
+    pdf_bytes = create_pdf_report(selected_industry, df_finance.sort_values(by='ROE(%)', ascending=False), font_path)
+    st.download_button("📄 분석 리포트 다운로드 (PDF)", data=pdf_bytes, file_name=f"{selected_industry}_듀퐁분석.pdf", mime="application/pdf")
 
-    # 차트 출력
-    st.subheader("📊 이익의 질 분석 (영업이익 vs 실제현금흐름)")
-    fig_cf = px.bar(df_finance, x='기업명', y=['영업이익(억)', '영업현금흐름(억)'], barmode='group', template='plotly_white')
-    st.plotly_chart(fig_cf, use_container_width=True)
+    # [A] 심층 재무 테이블
+    st.subheader(f"📑 {selected_industry} 핵심 지표")
+    cols = ['기업명', '매출액(억)', '영업이익(억)', '현금창출력(%)', '부채비율(%)', 'ROE(%)']
+    st.table(df_finance[cols].sort_values(by='ROE(%)', ascending=False))
 
-    st.subheader("📈 최근 1년 주가 트렌드 비교")
-    selected_tickers = [company_dict[name] for name in selected_names]
-    stock_data = yf.download(selected_tickers, period="1y")['Close']
-    if not stock_data.empty:
-        inv_map = {v: k for k, v in company_dict.items()}
-        plot_df = stock_data.rename(columns=inv_map)
-        fig_stock = px.line(plot_df, labels={"value": "주가 (원)", "Date": "날짜", "variable": "기업명"})
-        fig_stock.update_layout(hovermode="x unified")
-        st.plotly_chart(fig_stock, use_container_width=True)
+    # [B] 듀퐁 분석 시각화 (하이라이트!)
+    st.markdown("---")
+    st.subheader("🔬 듀퐁 분석 (DuPont Analysis): ROE 분해")
+    st.write("ROE가 높은 원인이 **수익성(마진)** 때문인지, **활동성(자산회전)** 때문인지, **레버리지(부채)** 때문인지 분석합니다.")
+    
+    # Plotly 다중 막대 차트로 3가지 요소 비교
+    fig_dupont = go.Figure()
+    fig_dupont.add_trace(go.Bar(x=df_finance['기업명'], y=df_finance['순이익률(%)'], name='수익성 (순이익률 %)', marker_color='#1f77b4'))
+    fig_dupont.add_trace(go.Bar(x=df_finance['기업명'], y=df_finance['총자산회전율(배)']*10, name='활동성 (회전율x10)', marker_color='#ff7f0e'))
+    fig_dupont.add_trace(go.Bar(x=df_finance['기업명'], y=df_finance['재무레버리지(배)'], name='재무구조 (레버리지 배)', marker_color='#2ca02c'))
+    
+    fig_dupont.update_layout(barmode='group', template='plotly_white', legend=dict(orientation="h", y=1.1))
+    st.plotly_chart(fig_dupont, use_container_width=True)
+
+    # [C] 주가 차트 생략 없이 깔끔하게 배치
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("📈 주가 흐름 (1년)")
+        selected_tickers = [company_dict[name] for name in selected_names]
+        stock_data = yf.download(selected_tickers, period="1y")['Close']
+        if not stock_data.empty:
+            plot_df = stock_data.rename(columns={v: k for k, v in company_dict.items()})
+            fig_stock = px.line(plot_df)
+            fig_stock.update_layout(showlegend=False, margin=dict(l=0, r=0, t=0, b=0))
+            st.plotly_chart(fig_stock, use_container_width=True)
+            
+    with col2:
+        st.subheader("📊 이익의 질 (이익 vs 현금)")
+        fig_cf = px.bar(df_finance, x='기업명', y=['영업이익(억)', '영업현금흐름(억)'], barmode='group')
+        fig_cf.update_layout(legend=dict(orientation="h", y=1.1), margin=dict(l=0, r=0, t=0, b=0))
+        st.plotly_chart(fig_cf, use_container_width=True)
 
 st.markdown("---")
-st.caption("✅ **Update 2026-03-18**: 현금흐름 분석 및 PDF 자동 리포팅 모듈 탑재")
+st.caption("✅ **Update 2026-03-18**: 듀퐁 분석 시각화 및 자동화 리포팅 완료")
