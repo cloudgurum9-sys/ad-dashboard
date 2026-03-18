@@ -1,11 +1,10 @@
 import streamlit as st
 import pandas as pd
 import yfinance as yf
-import matplotlib.pyplot as plt
-import matplotlib.font_manager as fm
-import os
+import plotly.express as px # <-- Plotly 추가
 import requests
 from bs4 import BeautifulSoup
+import os
 
 # --- 1. 데이터 베이스 확장 (부채비율, ROE 지표 추가) ---
 INDUSTRY_DATA = {
@@ -99,7 +98,7 @@ selected_names = st.sidebar.multiselect(
 
 # --- 4. 대시보드 출력 ---
 if not selected_names:
-    st.info("비교할 기업을 왼쪽 사이드바에서 선택해 주세요.")
+    st.info("비교할 기업을 선택해 주세요.")
 else:
     selected_tickers = [company_dict[name] for name in selected_names]
     
@@ -115,12 +114,31 @@ else:
     cols = ['기업명', '매출액(억)', '영업이익(억)', '영업이익률(%)', '부채비율(%)', 'ROE(%)']
     st.table(df_finance[cols].sort_values(by='ROE(%)', ascending=False))
 
-    # [B] 주가 차트
+    # [B] 주가 차트 (Plotly로 업그레이드!)
     st.subheader(f"📈 {selected_industry} 주가 트렌드 (1년)")
     stock_df = get_stock_data(selected_tickers)
+    
     if not stock_df.empty:
-        st.line_chart(stock_df)
-
+        # 데이터 정제: yfinance 데이터는 컬럼이 티커(030000.KS)로 되어있어서 기업명으로 바꿔줍니다.
+        # 티커와 기업명 매핑용 사전 생성
+        inv_company_dict = {v: k for k, v in company_dict.items()}
+        
+        # 컬럼명을 티커에서 한글 기업명으로 변경
+        plot_df = stock_df.rename(columns=inv_company_dict)
+        
+        # Plotly를 이용한 인터랙티브 라인 차트
+        fig = px.line(plot_df, 
+                      labels={"value": "주가 (원)", "date": "날짜", "variable": "기업명"},
+                      template="plotly_white") # 깔끔한 흰색 배경
+        
+        # 그래프 디자인 살짝 가미
+        fig.update_layout(
+            hovermode="x unified", # 마우스 갖다대면 모든 기업 수치 한꺼번에 노출
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1), # 범례를 상단에 배치
+            margin=dict(l=0, r=0, t=40, b=0)
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
     # [C] 실시간 뉴스 탭
     st.markdown("---")
     st.subheader(f"📰 {selected_industry} 최신 주요 이슈")
