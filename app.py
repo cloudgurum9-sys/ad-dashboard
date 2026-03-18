@@ -7,9 +7,9 @@ import requests
 from bs4 import BeautifulSoup
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
+from fpdf import FPDF  # PDF 생성을 위한 라이브러리 추가
 
-# --- 1. 산업별 통합 데이터베이스 (영업현금흐름 OCF 추가) ---
-# 실제 2024~2025 예상치 및 실적 경향 반영
+# --- 1. 산업별 통합 데이터베이스 ---
 INDUSTRY_DATA = {
     "광고업": {
         "companies": {"제일기획": "030000.KS", "이노션": "214320.KS", "나스미디어": "089600.KQ", "에코마케팅": "230360.KQ", "인크로스": "216050.KQ"},
@@ -17,7 +17,7 @@ INDUSTRY_DATA = {
             "기업명": ["제일기획", "이노션", "나스미디어", "에코마케팅", "인크로스"],
             "매출액(억)": [42000, 18000, 1500, 3500, 600],
             "영업이익(억)": [3100, 1500, 300, 600, 150],
-            "영업현금흐름(억)": [3500, 1600, 280, 650, 160], # OCF는 대개 영업이익보다 큼(감가상각비 등 영향)
+            "영업현금흐름(억)": [3500, 1600, 280, 650, 160],
             "부채비율(%)": [110, 80, 45, 35, 25],
             "ROE(%)": [15.2, 10.5, 12.8, 18.5, 14.1]
         }
@@ -57,18 +57,48 @@ INDUSTRY_DATA = {
     }
 }
 
-# --- 2. 폰트 및 페이지 설정 ---
+# --- 2. 기본 폰트 설정 ---
 font_path = '/usr/share/fonts/truetype/nanum/NanumGothic.ttf'
 if os.path.exists(font_path):
     font_prop = fm.FontProperties(fname=font_path)
     plt.rc('font', family=font_prop.get_name())
 
-st.set_page_config(page_title="전문 재무 분석 대시보드", layout="wide")
-st.title("📂 전문 재무 건전성 및 현금흐름 분석 포털")
-st.markdown("> **회계팀 관점의 리스크 관리 도구: 이익의 질(Quality of Earnings) 분석**")
+# --- 3. PDF 리포트 생성 함수 ---
+def create_pdf_report(industry, df, font_path):
+    pdf = FPDF()
+    pdf.add_page()
+    
+    # 한글 폰트 적용 (에러 방지용 Fallback 포함)
+    if os.path.exists(font_path):
+        pdf.add_font("NanumGothic", "", font_path)
+        pdf.set_font("NanumGothic", "", 16)
+    else:
+        pdf.set_font("Helvetica", "", 16)
+        
+    # 제목 작성
+    pdf.cell(0, 10, f"[{industry}] Financial Health & Cash Flow Report", ln=True, align='C')
+    pdf.ln(10)
+    
+    # 본문 폰트 크기 변경
+    if os.path.exists(font_path):
+        pdf.set_font("NanumGothic", "", 11)
+    
+    # 데이터 순회하며 PDF에 작성
+    for index, row in df.iterrows():
+        pdf.cell(0, 8, f"▶ 기업명: {row['기업명']}", ln=True)
+        pdf.cell(0, 8, f"   - 매출액: {row['매출액(억)']}억 | 영업이익: {row['영업이익(억)']}억 | 현금흐름(OCF): {row['영업현금흐름(억)']}억", ln=True)
+        pdf.cell(0, 8, f"   - 현금창출력: {row['현금창출력(%)']}% | 부채비율: {row['부채비율(%)']}% | ROE: {row['ROE(%)']}%", ln=True)
+        pdf.ln(5) # 간격 띄우기
+        
+    # PDF를 byte 형태로 반환
+    return bytes(pdf.output())
 
-# --- 3. 사이드바 ---
-selected_industry = st.sidebar.selectbox("📂 업종 선택", list(INDUSTRY_DATA.keys()))
+# --- 4. 대시보드 UI ---
+st.set_page_config(page_title="전문 재무 분석 대시보드", layout="wide")
+st.title("📊 산업별 재무분석 및 이익의 질(Quality of Earnings)")
+st.markdown("---")
+
+selected_industry = st.sidebar.selectbox("📂 분석 업종 선택", list(INDUSTRY_DATA.keys()))
 current_data = INDUSTRY_DATA[selected_industry]
 company_dict = current_data["companies"]
 
@@ -78,42 +108,42 @@ selected_names = st.sidebar.multiselect(
     default=list(company_dict.keys())
 )
 
-# --- 4. 메인 분석 화면 ---
 if selected_names:
     df_finance = pd.DataFrame(current_data["finance"])
     df_finance = df_finance[df_finance['기업명'].isin(selected_names)]
-    
-    # [A] 지표 자동 계산
     df_finance['영업이익률(%)'] = (df_finance['영업이익(억)'] / df_finance['매출액(억)'] * 100).round(2)
-    # 핵심 회계 지표: 영업이익 대비 현금흐름 비율 (100% 이상일수록 이익의 질이 좋음)
     df_finance['현금창출력(%)'] = (df_finance['영업현금흐름(억)'] / df_finance['영업이익(억)'] * 100).round(1)
 
-    # [B] 재무 데이터 테이블
-    st.subheader(f"📑 {selected_industry} 심층 재무 지표")
+    # [다운로드 버튼 영역 추가]
+    st.subheader(f"📑 {selected_industry} 심층 재무 분석")
+    
+    # PDF 생성 및 다운로드 버튼
+    pdf_bytes = create_pdf_report(selected_industry, df_finance.sort_values(by='현금창출력(%)', ascending=False), font_path)
+    st.download_button(
+        label="📄 PDF 리포트 다운로드",
+        data=pdf_bytes,
+        file_name=f"{selected_industry}_재무분석_리포트.pdf",
+        mime="application/pdf"
+    )
+
+    # 테이블 출력
     cols = ['기업명', '매출액(억)', '영업이익(억)', '영업현금흐름(억)', '현금창출력(%)', '부채비율(%)', 'ROE(%)']
     st.table(df_finance[cols].sort_values(by='현금창출력(%)', ascending=False))
 
-    # [C] 현금흐름 vs 영업이익 시각화 (Plotly)
-    st.subheader("📊 영업이익 vs 실제 현금유입 비교")
-    fig_cf = px.bar(df_finance, x='기업명', y=['영업이익(억)', '영업현금흐름(억)'], 
-                    barmode='group', title="이익의 질 분석 (영업이익 vs OCF)")
+    # 차트 출력
+    st.subheader("📊 이익의 질 분석 (영업이익 vs 실제현금흐름)")
+    fig_cf = px.bar(df_finance, x='기업명', y=['영업이익(억)', '영업현금흐름(억)'], barmode='group', template='plotly_white')
     st.plotly_chart(fig_cf, use_container_width=True)
 
-    # [D] 주가 차트 및 뉴스 (이전 코드와 동일하되 깔끔하게 정리)
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader("📈 주가 트렌드")
-        selected_tickers = [company_dict[name] for name in selected_names]
-        data = yf.download(selected_tickers, period="1y")['Close']
-        if not data.empty:
-            inv_map = {v: k for k, v in company_dict.items()}
-            st.line_chart(data.rename(columns=inv_map))
-    
-    with col2:
-        st.subheader("📰 최신 주요 뉴스")
-        # 간단 뉴스 링크 버튼 제공
-        for name in selected_names[:3]: # 상위 3개만 요약
-            st.link_button(f"🔍 {name} 실시간 뉴스 보기", f"https://search.naver.com/search.naver?where=news&query={name}")
+    st.subheader("📈 최근 1년 주가 트렌드 비교")
+    selected_tickers = [company_dict[name] for name in selected_names]
+    stock_data = yf.download(selected_tickers, period="1y")['Close']
+    if not stock_data.empty:
+        inv_map = {v: k for k, v in company_dict.items()}
+        plot_df = stock_data.rename(columns=inv_map)
+        fig_stock = px.line(plot_df, labels={"value": "주가 (원)", "Date": "날짜", "variable": "기업명"})
+        fig_stock.update_layout(hovermode="x unified")
+        st.plotly_chart(fig_stock, use_container_width=True)
 
 st.markdown("---")
-st.caption("✅ **Update 2026-03-18**: 영업현금흐름(OCF) 및 이익의 질 분석 모듈 탑재 완료")
+st.caption("✅ **Update 2026-03-18**: 현금흐름 분석 및 PDF 자동 리포팅 모듈 탑재")
