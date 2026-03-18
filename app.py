@@ -7,14 +7,16 @@ import os
 import requests
 from bs4 import BeautifulSoup
 
-# --- 1. 데이터 베이스 확장 (새로운 업종 데이터 추가) ---
+# --- 1. 데이터 베이스 확장 (부채비율, ROE 지표 추가) ---
 INDUSTRY_DATA = {
     "광고업": {
         "companies": {"제일기획": "030000.KS", "이노션": "214320.KS", "나스미디어": "089600.KQ", "에코마케팅": "230360.KQ", "인크로스": "216050.KQ"},
         "finance": {
             "기업명": ["제일기획", "이노션", "나스미디어", "에코마케팅", "인크로스"],
             "매출액(억)": [42000, 18000, 1500, 3500, 600],
-            "영업이익(억)": [3100, 1500, 300, 600, 150]
+            "영업이익(억)": [3100, 1500, 300, 600, 150],
+            "부채비율(%)": [110, 80, 45, 35, 25], # 예시 수치
+            "ROE(%)": [15.2, 10.5, 12.8, 18.5, 14.1]
         }
     },
     "반도체": {
@@ -22,7 +24,9 @@ INDUSTRY_DATA = {
         "finance": {
             "기업명": ["삼성전자", "SK하이닉스", "한미반도체", "HPSP"],
             "매출액(억)": [2580000, 440000, 1590, 1700],
-            "영업이익(억)": [65000, 27000, 350, 950]
+            "영업이익(억)": [65000, 27000, 350, 950],
+            "부채비율(%)": [25, 55, 15, 10],
+            "ROE(%)": [8.2, 5.5, 12.0, 35.5]
         }
     },
     "게임": {
@@ -30,7 +34,9 @@ INDUSTRY_DATA = {
         "finance": {
             "기업명": ["컴투스", "크래프톤", "넷마블", "엔씨소프트", "카카오게임즈"],
             "매출액(억)": [6938, 27098, 26638, 15781, 7388],
-            "영업이익(억)": [24, 11825, 2156, -1092, 65]
+            "영업이익(억)": [24, 11825, 2156, -1092, 65],
+            "부채비율(%)": [45, 15, 65, 35, 50],
+            "ROE(%)": [2.5, 22.1, 5.5, -3.2, 1.8]
         }
     },
     "타이어": {
@@ -38,12 +44,14 @@ INDUSTRY_DATA = {
         "finance": {
             "기업명": ["한국타이어앤테크놀로지", "금호타이어", "넥센타이어"],
             "매출액(억)": [212022, 41000, 27000],
-            "영업이익(억)": [18425, 3800, 1800]
+            "영업이익(억)": [18425, 3800, 1800],
+            "부채비율(%)": [75, 210, 150],
+            "ROE(%)": [12.5, 15.2, 8.5]
         }
     }
 }
 
-# --- 2. 핵심 함수 (뉴스/주가 데이터) ---
+# --- 2. 핵심 함수 ---
 @st.cache_data(ttl=1800)
 def get_company_news_final(company_name):
     results = []
@@ -71,10 +79,10 @@ if os.path.exists(font_path):
     font_prop = fm.FontProperties(fname=font_path)
     plt.rc('font', family=font_prop.get_name())
 plt.rcParams['axes.unicode_minus'] = False
-st.set_page_config(page_title="산업 분석 포털", layout="wide")
+st.set_page_config(page_title="재무 건전성 분석 포털", layout="wide")
 
-st.title("📊 대한민국 주요 산업 분석 대시보드")
-st.write("다양한 산업군의 재무 지표와 실시간 뉴스, 주가 흐름을 한눈에 비교하세요.")
+st.title("📊 산업별 재무 건전성 & 수익성 대시보드")
+st.write("회계팀 관점에서의 다각도 기업 분석 도구입니다.")
 st.markdown("---")
 
 # --- 3. 사이드바 인터페이스 ---
@@ -95,12 +103,17 @@ if not selected_names:
 else:
     selected_tickers = [company_dict[name] for name in selected_names]
     
-    # [A] 수익성 비교
-    st.subheader(f"💰 {selected_industry} 수익성 지표 비교")
+    # [A] 재무 지표 비교 (부채비율, ROE 포함)
+    st.subheader(f"📑 {selected_industry} 핵심 재무 지표 비교")
     df_finance = pd.DataFrame(current_data["finance"])
     df_finance = df_finance[df_finance['기업명'].isin(selected_names)]
+    
+    # 영업이익률 추가 계산
     df_finance['영업이익률(%)'] = (df_finance['영업이익(억)'] / df_finance['매출액(억)'] * 100).round(2)
-    st.table(df_finance.sort_values(by='영업이익률(%)', ascending=False))
+    
+    # 컬럼 순서 재배치 (보기 좋게)
+    cols = ['기업명', '매출액(억)', '영업이익(억)', '영업이익률(%)', '부채비율(%)', 'ROE(%)']
+    st.table(df_finance[cols].sort_values(by='ROE(%)', ascending=False))
 
     # [B] 주가 차트
     st.subheader(f"📈 {selected_industry} 주가 트렌드 (1년)")
@@ -110,7 +123,7 @@ else:
 
     # [C] 실시간 뉴스 탭
     st.markdown("---")
-    st.subheader(f"📰 {selected_industry} 최신 주요 뉴스")
+    st.subheader(f"📰 {selected_industry} 최신 주요 이슈")
     tabs = st.tabs(selected_names)
     for i, name in enumerate(selected_names):
         with tabs[i]:
@@ -119,8 +132,8 @@ else:
                 for news in news_list:
                     st.write(f"🔗 [{news['title']}]({news['link']})")
             else:
-                st.info(f"'{name}' 뉴스를 가져오는 중입니다. 잠시 후 다시 확인하세요.")
-                st.link_button(f"🔍 네이버에서 '{name}' 뉴스 직접 보기", f"https://search.naver.com/search.naver?where=news&query={name}")
+                st.info(f"'{name}' 뉴스를 가져오는 중입니다.")
+                st.link_button(f"🔍 네이버 뉴스 직접 보기", f"https://search.naver.com/search.naver?where=news&query={name}")
 
 st.markdown("---")
-st.caption(f"본 서비스는 공개된 데이터를 기반으로 하며, 실제 투자 시 정보의 정확성을 재확인하시기 바랍니다. | Updated 2026-03-18")
+st.caption("✅ **Update 2026-03-18**: 회계팀 취업용 재무 건전성 분석 모듈 추가 완료")
