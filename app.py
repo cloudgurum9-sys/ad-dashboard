@@ -95,22 +95,34 @@ def create_pdf_report(industry, df, font_path):
 # --- 3. 대시보드 UI (UI/UX 개선 버전) ---
 st.set_page_config(page_title="고급 재무 분석 대시보드", layout="wide", initial_sidebar_state="expanded")
 
-# 🌟 [추가된 CSS 코드] st.metric 글씨 잘림 방지
+# 🌟 [추가된 CSS 코드] st.metric 글씨 잘림 방지 및 Expander 동적 텍스트 마법
 st.markdown("""
 <style>
-/* 지표(Metric) 제목 줄바꿈 허용 */
+/* 1. 지표(Metric) 제목 및 값 줄바꿈 허용 */
 [data-testid="stMetricLabel"] {
     white-space: normal !important;
     word-break: keep-all !important;
     overflow: visible !important;
 }
-
-/* 지표(Metric) 값(에코마케팅 등) 줄바꿈 허용 및 글자 크기 살짝 축소 */
 [data-testid="stMetricValue"] {
     white-space: normal !important;
     word-break: keep-all !important;
     overflow: visible !important;
     font-size: 1.8rem !important;
+}
+
+/* 2. Expander(펼치기) 동적 텍스트 변경 마법 */
+/* 닫혀있을 때 */
+[data-testid="stExpander"] details:not([open]) summary p::after {
+    content: " (클릭하여 펼치기)";
+    color: #888888;
+    font-size: 0.9em;
+}
+/* 열려있을 때 */
+[data-testid="stExpander"] details[open] summary p::after {
+    content: " (클릭하여 닫기)";
+    color: #ff4b4b; 
+    font-size: 0.9em;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -162,8 +174,8 @@ if selected_names:
     tab1, tab2, tab3 = st.tabs(["📑 심층 재무 & 듀퐁 분석", "🕸️ 기업 다면 평가 (레이더)", "📈 주가 및 이익의 질"])
 
     with tab1:
-        # 데이터 테이블 (Expander로 숨김 기능)
-        with st.expander("📊 세부 재무 데이터 표 보기 (클릭하여 펼치기)", expanded=False):
+        # 데이터 테이블 (Expander로 숨김 기능 - 파이썬 텍스트 제거)
+        with st.expander("📊 세부 재무 데이터 표 보기", expanded=False):
             cols = ['기업명', '매출액(억)', '영업이익(억)', '현금창출력(%)', '부채비율(%)', 'ROE(%)']
             st.dataframe(df_finance[cols].sort_values(by='ROE(%)', ascending=False), use_container_width=True, hide_index=True)
             
@@ -213,4 +225,4 @@ if selected_names:
             st.plotly_chart(fig_cf, use_container_width=True)
 
 st.markdown("---")
-st.caption("✅ **최종 빌드 완료**: UI/UX 최적화 및 레이아웃 모듈화 탑재 (Metric 줄바꿈 패치 적용)")
+st.caption("✅ **최종 빌드 완료**: UI/UX 최적화 및 레이아웃 모듈화 탑재 (Metric 줄바꿈 및 동적 텍스트 패치 적용)")
