@@ -1,3 +1,9 @@
+민준님, 알겠습니다! 가장 강력하게 적용되도록 수정한 최신 CSS 코드를 포함하여 전체 파이썬 코드를 다시 싹 정리했습니다.
+
+기존 코드를 모두 지우시고, 아래 코드를 그대로 복사해서 붙여넣기 해보세요!
+
+💻 [최종 완성된 파이썬 전체 코드 (동적 텍스트 강제 적용 버전)]
+Python
 import streamlit as st
 import pandas as pd
 import yfinance as yf
@@ -95,7 +101,7 @@ def create_pdf_report(industry, df, font_path):
 # --- 3. 대시보드 UI (UI/UX 개선 버전) ---
 st.set_page_config(page_title="고급 재무 분석 대시보드", layout="wide", initial_sidebar_state="expanded")
 
-# 🌟 [추가된 CSS 코드] st.metric 글씨 잘림 방지 및 Expander 동적 텍스트 마법
+# 🌟 [추가된 CSS 코드] st.metric 글씨 잘림 방지 및 Expander 동적 텍스트 (강제 적용)
 st.markdown("""
 <style>
 /* 1. 지표(Metric) 제목 및 값 줄바꿈 허용 */
@@ -111,18 +117,22 @@ st.markdown("""
     font-size: 1.8rem !important;
 }
 
-/* 2. Expander(펼치기) 동적 텍스트 변경 마법 */
+/* 2. Expander(펼치기) 동적 텍스트 (강제 적용) */
 /* 닫혀있을 때 */
-[data-testid="stExpander"] details:not([open]) summary p::after {
-    content: " (클릭하여 펼치기)";
-    color: #888888;
-    font-size: 0.9em;
+[data-testid="stExpander"] details:not([open]) summary::after {
+    content: " (클릭하여 펼치기)" !important;
+    color: #888888 !important;
+    font-size: 14px !important;
+    margin-left: 10px !important;
+    font-weight: normal !important;
 }
 /* 열려있을 때 */
-[data-testid="stExpander"] details[open] summary p::after {
-    content: " (클릭하여 닫기)";
-    color: #ff4b4b; 
-    font-size: 0.9em;
+[data-testid="stExpander"] details[open] summary::after {
+    content: " (클릭하여 닫기)" !important;
+    color: #ff4b4b !important; 
+    font-size: 14px !important;
+    margin-left: 10px !important;
+    font-weight: normal !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -174,7 +184,7 @@ if selected_names:
     tab1, tab2, tab3 = st.tabs(["📑 심층 재무 & 듀퐁 분석", "🕸️ 기업 다면 평가 (레이더)", "📈 주가 및 이익의 질"])
 
     with tab1:
-        # 데이터 테이블 (Expander로 숨김 기능 - 파이썬 텍스트 제거)
+        # 데이터 테이블 (Expander로 숨김 기능 - 파이썬 텍스트 완전 제거 완료)
         with st.expander("📊 세부 재무 데이터 표 보기", expanded=False):
             cols = ['기업명', '매출액(억)', '영업이익(억)', '현금창출력(%)', '부채비율(%)', 'ROE(%)']
             st.dataframe(df_finance[cols].sort_values(by='ROE(%)', ascending=False), use_container_width=True, hide_index=True)
@@ -225,4 +235,4 @@ if selected_names:
             st.plotly_chart(fig_cf, use_container_width=True)
 
 st.markdown("---")
-st.caption("✅ **최종 빌드 완료**: UI/UX 최적화 및 레이아웃 모듈화 탑재 (Metric 줄바꿈 및 동적 텍스트 패치 적용)")
+st.caption("✅ **최종 빌드 완료**: UI/UX 최적화 및 레이아웃 모듈화 탑재 (Metric 줄바꿈 및 강제 동적 텍스트 적용)")
