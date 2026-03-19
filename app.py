@@ -92,35 +92,37 @@ def create_pdf_report(industry, df, font_path):
         pdf.ln(5)
     return bytes(pdf.output())
 
-# --- 3. 대시보드 UI (UI/UX 개선 버전) ---
+# --- 3. 대시보드 UI ---
 st.set_page_config(page_title="고급 재무 분석 대시보드", layout="wide", initial_sidebar_state="expanded")
 
-# 🌟 [수정된 CSS 코드] 구조 변경을 반영한 최종 타겟팅
+# 🌟 [최종 수정된 CSS 코드] 스트림릿 버전별 모든 구조 동시 타겟팅
 st.markdown("""
 <style>
 /* 1. 지표(Metric) 제목 및 값 줄바꿈 허용 */
-[data-testid="stMetricLabel"] {
+[data-testid="stMetricLabel"], [data-testid="stMetricValue"] {
     white-space: normal !important;
     word-break: keep-all !important;
     overflow: visible !important;
 }
 [data-testid="stMetricValue"] {
-    white-space: normal !important;
-    word-break: keep-all !important;
-    overflow: visible !important;
     font-size: 1.8rem !important;
 }
 
-/* 2. Expander 동적 텍스트 (스트림릿 details 태그 직격 타겟팅) */
-details[data-testid="stExpander"]:not([open]) summary p::after {
+/* 2. Expander 동적 텍스트 (모든 가능한 태그 조합 방어) */
+div[data-testid="stExpander"] details:not([open]) summary::after,
+details[data-testid="stExpander"]:not([open]) summary::after {
     content: " (클릭하여 펼치기)" !important;
     color: #888888 !important;
     font-size: 14px !important;
+    margin-left: 8px !important;
 }
-details[data-testid="stExpander"][open] summary p::after {
+
+div[data-testid="stExpander"] details[open] summary::after,
+details[data-testid="stExpander"][open] summary::after {
     content: " (클릭하여 닫기)" !important;
     color: #ff4b4b !important; 
     font-size: 14px !important;
+    margin-left: 8px !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -149,7 +151,7 @@ if selected_names:
     df_finance['현금창출력(%)'] = (df_finance['영업현금흐름(억)'] / df_finance['영업이익(억)'] * 100).round(1)
     df_finance['재무레버리지(배)'] = (1 + (df_finance['부채비율(%)'] / 100)).round(2)
     
-    # 🌟 [신규 UI] 상단 KPI 요약 (Top Metrics)
+    # 상단 KPI 요약
     top_roe_company = df_finance.loc[df_finance['ROE(%)'].idxmax()]
     top_cf_company = df_finance.loc[df_finance['현금창출력(%)'].idxmax()]
     avg_debt = df_finance['부채비율(%)'].mean()
@@ -160,7 +162,7 @@ if selected_names:
     col3.metric("💰 최고 현금창출 기업", f"{top_cf_company['기업명']}", f"{top_cf_company['현금창출력(%)']}%")
     col4.metric("⚖️ 그룹 평균 부채비율", f"{avg_debt:.1f}%", delta_color="inverse")
     
-    st.markdown("<br>", unsafe_allow_html=True) # 여백
+    st.markdown("<br>", unsafe_allow_html=True)
 
     # PDF 다운로드
     pdf_bytes = create_pdf_report(selected_industry, df_finance.sort_values(by='ROE(%)', ascending=False), font_path)
@@ -168,7 +170,7 @@ if selected_names:
     with col_btn:
         st.download_button("📄 PDF 리포트 다운로드", data=pdf_bytes, file_name=f"{selected_industry}_리포트.pdf", mime="application/pdf", use_container_width=True)
 
-    # 🌟 [신규 UI] 탭 분할
+    # 탭 분할
     tab1, tab2, tab3 = st.tabs(["📑 심층 재무 & 듀퐁 분석", "🕸️ 기업 다면 평가 (레이더)", "📈 주가 및 이익의 질"])
 
     with tab1:
@@ -220,7 +222,3 @@ if selected_names:
             st.subheader("📊 이익의 질 (장부상 이익 vs 실제 현금)")
             fig_cf = px.bar(df_finance, x='기업명', y=['영업이익(억)', '영업현금흐름(억)'], barmode='group', color_discrete_sequence=['#83c9ff', '#182433'])
             fig_cf.update_layout(legend=dict(orientation="h", y=1.1), margin=dict(l=0, r=0, t=30, b=0))
-            st.plotly_chart(fig_cf, use_container_width=True)
-
-st.markdown("---")
-st.caption("✅ **최종 빌드 완료**: UI/UX 최적화 및 레이아웃 모듈화 탑재 (Metric 줄바꿈 및 강제 동적 텍스트 적용 v3)")
