@@ -7,7 +7,7 @@
 단순히 장부상 이익(영업이익)만 보는 것을 경계하고 **1) 실제 현금흐름 기반의 리스크 탐지**, **2) ROE의 근본 원인 분해**, **3) 경영진 의사결정을 위한 산출물(Deliverable) 자동화** 역량을 증명하는 데 중점을 두었습니다.
 
 ## 🔗 Live Demo
-[내 대시보드 접속하기](https://ad-dashboard-advtop5.streamlit.app/) *(실제 배포 링크로 수정해주세요)*
+[내 대시보드 접속하기](https://ad-dashboard-advtop5.streamlit.app/)
 
 ## ✨ 핵심 기능 및 실무 적용 포인트
 
