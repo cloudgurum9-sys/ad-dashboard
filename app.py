@@ -95,7 +95,7 @@ def create_pdf_report(industry, df, font_path):
 # --- 3. 대시보드 UI (UI/UX 개선 버전) ---
 st.set_page_config(page_title="고급 재무 분석 대시보드", layout="wide", initial_sidebar_state="expanded")
 
-# 🌟 [추가된 CSS 코드] st.metric 글씨 잘림 방지 및 Expander 동적 텍스트 (강제 적용)
+# 🌟 [수정된 CSS 코드] 구조 변경을 반영한 최종 타겟팅
 st.markdown("""
 <style>
 /* 1. 지표(Metric) 제목 및 값 줄바꿈 허용 */
@@ -111,22 +111,16 @@ st.markdown("""
     font-size: 1.8rem !important;
 }
 
-/* 2. Expander(펼치기) 동적 텍스트 (강제 적용) */
-/* 닫혀있을 때 */
-[data-testid="stExpander"] details:not([open]) summary::after {
+/* 2. Expander 동적 텍스트 (스트림릿 details 태그 직격 타겟팅) */
+details[data-testid="stExpander"]:not([open]) summary p::after {
     content: " (클릭하여 펼치기)" !important;
     color: #888888 !important;
     font-size: 14px !important;
-    margin-left: 10px !important;
-    font-weight: normal !important;
 }
-/* 열려있을 때 */
-[data-testid="stExpander"] details[open] summary::after {
+details[data-testid="stExpander"][open] summary p::after {
     content: " (클릭하여 닫기)" !important;
     color: #ff4b4b !important; 
     font-size: 14px !important;
-    margin-left: 10px !important;
-    font-weight: normal !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -168,17 +162,17 @@ if selected_names:
     
     st.markdown("<br>", unsafe_allow_html=True) # 여백
 
-    # PDF 다운로드 (우측 정렬 느낌)
+    # PDF 다운로드
     pdf_bytes = create_pdf_report(selected_industry, df_finance.sort_values(by='ROE(%)', ascending=False), font_path)
     col_empty, col_btn = st.columns([4, 1])
     with col_btn:
         st.download_button("📄 PDF 리포트 다운로드", data=pdf_bytes, file_name=f"{selected_industry}_리포트.pdf", mime="application/pdf", use_container_width=True)
 
-    # 🌟 [신규 UI] 탭(Tab)으로 깔끔하게 레이아웃 분할
+    # 🌟 [신규 UI] 탭 분할
     tab1, tab2, tab3 = st.tabs(["📑 심층 재무 & 듀퐁 분석", "🕸️ 기업 다면 평가 (레이더)", "📈 주가 및 이익의 질"])
 
     with tab1:
-        # 데이터 테이블 (Expander로 숨김 기능 - 파이썬 텍스트 완전 제거 완료)
+        # 데이터 테이블
         with st.expander("📊 세부 재무 데이터 표 보기", expanded=False):
             cols = ['기업명', '매출액(억)', '영업이익(억)', '현금창출력(%)', '부채비율(%)', 'ROE(%)']
             st.dataframe(df_finance[cols].sort_values(by='ROE(%)', ascending=False), use_container_width=True, hide_index=True)
@@ -229,4 +223,4 @@ if selected_names:
             st.plotly_chart(fig_cf, use_container_width=True)
 
 st.markdown("---")
-st.caption("✅ **최종 빌드 완료**: UI/UX 최적화 및 레이아웃 모듈화 탑재 (Metric 줄바꿈 및 강제 동적 텍스트 적용)")
+st.caption("✅ **최종 빌드 완료**: UI/UX 최적화 및 레이아웃 모듈화 탑재 (Metric 줄바꿈 및 강제 동적 텍스트 적용 v3)")
