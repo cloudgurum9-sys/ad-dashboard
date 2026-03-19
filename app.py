@@ -1,9 +1,3 @@
-민준님, 알겠습니다! 가장 강력하게 적용되도록 수정한 최신 CSS 코드를 포함하여 전체 파이썬 코드를 다시 싹 정리했습니다.
-
-기존 코드를 모두 지우시고, 아래 코드를 그대로 복사해서 붙여넣기 해보세요!
-
-💻 [최종 완성된 파이썬 전체 코드 (동적 텍스트 강제 적용 버전)]
-Python
 import streamlit as st
 import pandas as pd
 import yfinance as yf
