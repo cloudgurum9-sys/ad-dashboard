@@ -95,6 +95,26 @@ def create_pdf_report(industry, df, font_path):
 # --- 3. 대시보드 UI (UI/UX 개선 버전) ---
 st.set_page_config(page_title="고급 재무 분석 대시보드", layout="wide", initial_sidebar_state="expanded")
 
+# 🌟 [추가된 CSS 코드] st.metric 글씨 잘림 방지
+st.markdown("""
+<style>
+/* 지표(Metric) 제목 줄바꿈 허용 */
+[data-testid="stMetricLabel"] {
+    white-space: normal !important;
+    word-break: keep-all !important;
+    overflow: visible !important;
+}
+
+/* 지표(Metric) 값(에코마케팅 등) 줄바꿈 허용 및 글자 크기 살짝 축소 */
+[data-testid="stMetricValue"] {
+    white-space: normal !important;
+    word-break: keep-all !important;
+    overflow: visible !important;
+    font-size: 1.8rem !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # 상단 헤더
 st.title("📊 산업별 재무분석 및 이익의 질 평가")
 st.markdown("현금흐름, 듀퐁 분석, 다면 평가를 통해 기업의 숨겨진 재무적 가치를 발굴합니다.")
@@ -193,4 +213,4 @@ if selected_names:
             st.plotly_chart(fig_cf, use_container_width=True)
 
 st.markdown("---")
-st.caption("✅ **최종 빌드 완료**: UI/UX 최적화 및 레이아웃 모듈화 탑재")
+st.caption("✅ **최종 빌드 완료**: UI/UX 최적화 및 레이아웃 모듈화 탑재 (Metric 줄바꿈 패치 적용)")
