@@ -1,224 +1,103 @@
 import streamlit as st
 import pandas as pd
-import yfinance as yf
 import plotly.express as px
 import plotly.graph_objects as go
-import os
-import matplotlib.pyplot as plt
-import matplotlib.font_manager as fm
-from fpdf import FPDF
 
-# --- 1. 산업별 통합 데이터베이스 (데이터 동일) ---
-INDUSTRY_DATA = {
-    "광고업": {
-        "companies": {"제일기획": "030000.KS", "이노션": "214320.KS", "나스미디어": "089600.KQ", "에코마케팅": "230360.KQ", "인크로스": "216050.KQ"},
-        "finance": {
-            "기업명": ["제일기획", "이노션", "나스미디어", "에코마케팅", "인크로스"],
-            "매출액(억)": [42000, 18000, 1500, 3500, 600],
-            "영업이익(억)": [3100, 1500, 300, 600, 150],
-            "영업현금흐름(억)": [3500, 1600, 280, 650, 160],
-            "부채비율(%)": [110, 80, 45, 35, 25],
-            "순이익률(%)": [6.5, 5.8, 12.0, 14.5, 11.0],
-            "총자산회전율(배)": [1.11, 1.0, 0.73, 0.94, 1.02],
-            "ROE(%)": [15.2, 10.5, 12.8, 18.5, 14.1]
-        }
-    },
-    "반도체": {
-        "companies": {"삼성전자": "005930.KS", "SK하이닉스": "000660.KS", "한미반도체": "042700.KS", "HPSP": "403870.KQ"},
-        "finance": {
-            "기업명": ["삼성전자", "SK하이닉스", "한미반도체", "HPSP"],
-            "매출액(억)": [2580000, 440000, 5767, 2164],
-            "영업이익(억)": [650000, 270000, 2514, 1182],
-            "영업현금흐름(억)": [820000, 350000, 2800, 1300],
-            "부채비율(%)": [25, 55, 15, 10],
-            "순이익률(%)": [12.5, 15.0, 38.0, 42.0],
-            "총자산회전율(배)": [0.52, 0.65, 0.27, 0.76],
-            "ROE(%)": [8.2, 15.5, 12.0, 35.5]
-        }
-    },
-    "게임": {
-        "companies": {"컴투스": "078340.KQ", "크래프톤": "259960.KS", "넷마블": "251270.KS", "엔씨소프트": "036570.KS", "카카오게임즈": "293490.KQ"},
-        "finance": {
-            "기업명": ["컴투스", "크래프톤", "넷마블", "엔씨소프트", "카카오게임즈"],
-            "매출액(억)": [7000, 27098, 26638, 15069, 7388],
-            "영업이익(억)": [190, 11825, 3525, 161, -396],
-            "영업현금흐름(억)": [450, 13500, 4200, 1200, 200],
-            "부채비율(%)": [45, 15, 65, 35, 50],
-            "순이익률(%)": [2.1, 35.0, 4.0, 1.5, -4.5],
-            "총자산회전율(배)": [0.82, 0.55, 0.83, 0.59, 0.60],
-            "ROE(%)": [2.5, 22.1, 5.5, 1.2, -5.2]
-        }
-    },
-    "타이어": {
-        "companies": {"한국타이어앤테크놀로지": "161390.KS", "금호타이어": "073240.KS", "넥센타이어": "002350.KS"},
-        "finance": {
-            "기업명": ["한국타이어앤테크놀로지", "금호타이어", "넥센타이어"],
-            "매출액(억)": [212022, 41000, 27000],
-            "영업이익(억)": [18425, 3800, 1800],
-            "영업현금흐름(억)": [22000, 4500, 2400],
-            "부채비율(%)": [75, 210, 150],
-            "순이익률(%)": [7.5, 4.2, 3.5],
-            "총자산회전율(배)": [0.95, 1.15, 0.97],
-            "ROE(%)": [12.5, 15.2, 8.5]
-        }
+# 1. 페이지 기본 설정
+st.set_page_config(page_title="재무/현금흐름 분석 대시보드", page_icon="📊", layout="wide")
+
+# 2. 가상 재무 데이터 생성 (컴투스 및 게임 산업 타겟팅)
+@st.cache_data
+def load_data():
+    data = {
+        '연도': ['2024', '2025', '2024', '2025', '2024', '2025'],
+        '산업군': ['게임', '게임', 'IT', 'IT', '제조', '제조'],
+        '기업명': ['컴투스', '컴투스', 'A네트웍스', 'A네트웍스', 'B전자', 'B전자'],
+        '매출액': [7000, 8500, 5000, 5200, 10000, 9500],
+        '당기순이익': [-200, 450, 300, 350, 800, 600],
+        '총자산': [15000, 14500, 8000, 8500, 20000, 19000],
+        '자기자본': [11000, 11500, 5000, 5300, 12000, 11500],
+        '영업현금흐름(OCF)': [150, 600, 400, 450, 1200, 900]
     }
-}
+    return pd.DataFrame(data)
 
-# --- 2. 기본 설정 및 리포트 함수 ---
-font_path = '/usr/share/fonts/truetype/nanum/NanumGothic.ttf'
-if os.path.exists(font_path):
-    font_prop = fm.FontProperties(fname=font_path)
-    plt.rc('font', family=font_prop.get_name())
+df = load_data()
 
-def create_pdf_report(industry, df, font_path):
-    pdf = FPDF()
-    pdf.add_page()
-    if os.path.exists(font_path):
-        pdf.add_font("NanumGothic", "", font_path)
-        pdf.set_font("NanumGothic", "", 16)
-    else:
-        pdf.set_font("Helvetica", "", 16)
-        
-    pdf.cell(0, 10, f"[{industry}] Financial Health & DuPont Analysis", ln=True, align='C')
-    pdf.ln(10)
-    
-    if os.path.exists(font_path):
-        pdf.set_font("NanumGothic", "", 11)
-    
-    for index, row in df.iterrows():
-        pdf.cell(0, 8, f"▶ {row['기업명']}", ln=True)
-        pdf.cell(0, 8, f"   - 이익 및 현금: 매출 {row['매출액(억)']}억 | 현금창출력 {row['현금창출력(%)']}%", ln=True)
-        pdf.cell(0, 8, f"   - 듀퐁 분석(ROE {row['ROE(%)']}%): 순이익률 {row['순이익률(%)']}% | 자산회전율 {row['총자산회전율(배)']}배 | 재무레버리지 {row['재무레버리지(배)']}배", ln=True)
-        pdf.ln(5)
-    return bytes(pdf.output())
+# 3. 사이드바 설정 (산업군 '게임' 디폴트 설정)
+st.sidebar.header("🔍 분석 필터")
 
-# --- 3. 대시보드 UI ---
-st.set_page_config(page_title="고급 재무 분석 대시보드", layout="wide", initial_sidebar_state="expanded")
+# 핵심 포인트: 리스트의 첫 번째 요소를 '게임'으로 배치하여 디폴트 값으로 만듦
+industry_list = ['게임', 'IT', '제조'] 
+selected_industry = st.sidebar.selectbox("🏢 산업군 선택", industry_list, index=0)
 
-# 🌟 [최종 수정된 CSS 코드] 스트림릿 버전별 모든 구조 동시 타겟팅
-st.markdown("""
-<style>
-/* 1. 지표(Metric) 제목 및 값 줄바꿈 허용 */
-[data-testid="stMetricLabel"], [data-testid="stMetricValue"] {
-    white-space: normal !important;
-    word-break: keep-all !important;
-    overflow: visible !important;
-}
-[data-testid="stMetricValue"] {
-    font-size: 1.8rem !important;
-}
+# 선택된 산업군에 맞는 기업만 필터링
+filtered_companies = df[df['산업군'] == selected_industry]['기업명'].unique()
+selected_company = st.sidebar.selectbox("🏢 기업 선택", filtered_companies)
 
-/* 2. Expander 동적 텍스트 (모든 가능한 태그 조합 방어) */
-div[data-testid="stExpander"] details:not([open]) summary::after,
-details[data-testid="stExpander"]:not([open]) summary::after {
-    content: " (클릭하여 펼치기)" !important;
-    color: #888888 !important;
-    font-size: 14px !important;
-    margin-left: 8px !important;
-}
+# 최종 선택된 기업 데이터
+company_data = df[df['기업명'] == selected_company].sort_values('연도').reset_index(drop=True)
 
-div[data-testid="stExpander"] details[open] summary::after,
-details[data-testid="stExpander"][open] summary::after {
-    content: " (클릭하여 닫기)" !important;
-    color: #ff4b4b !important; 
-    font-size: 14px !important;
-    margin-left: 8px !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# 상단 헤더
-st.title("📊 산업별 재무분석 및 이익의 질 평가")
-st.markdown("현금흐름, 듀퐁 분석, 다면 평가를 통해 기업의 숨겨진 재무적 가치를 발굴합니다.")
+# 4. 메인 대시보드 화면
+st.title(f"📊 {selected_company} 재무 및 현금흐름 분석 대시보드")
 st.markdown("---")
 
-# 사이드바
-st.sidebar.header("⚙️ 분석 조건 설정")
-selected_industry = st.sidebar.selectbox("📂 분석 업종 선택", list(INDUSTRY_DATA.keys()))
-current_data = INDUSTRY_DATA[selected_industry]
-company_dict = current_data["companies"]
+if len(company_data) >= 2:
+    # 당기(2025) 및 전기(2024) 데이터 추출
+    current = company_data.iloc[-1]
+    previous = company_data.iloc[-2]
 
-selected_names = st.sidebar.multiselect(
-    f"🔍 {selected_industry} 기업 선택",
-    options=list(company_dict.keys()),
-    default=list(company_dict.keys())
-)
-
-if selected_names:
-    # 데이터 처리
-    df_finance = pd.DataFrame(current_data["finance"])
-    df_finance = df_finance[df_finance['기업명'].isin(selected_names)]
-    df_finance['현금창출력(%)'] = (df_finance['영업현금흐름(억)'] / df_finance['영업이익(억)'] * 100).round(1)
-    df_finance['재무레버리지(배)'] = (1 + (df_finance['부채비율(%)'] / 100)).round(2)
+    # --- Section 1: 실질 현금창출력 (OCF) 추적 ---
+    st.subheader("1. 영업현금흐름(OCF) 및 당기순이익 추적")
     
-    # 상단 KPI 요약
-    top_roe_company = df_finance.loc[df_finance['ROE(%)'].idxmax()]
-    top_cf_company = df_finance.loc[df_finance['현금창출력(%)'].idxmax()]
-    avg_debt = df_finance['부채비율(%)'].mean()
+    col1, col2, col3 = st.columns(3)
+    col1.metric("당기 매출액", f"{current['매출액']:,} 억", f"{current['매출액'] - previous['매출액']:,} 억")
+    col2.metric("당기순이익", f"{current['당기순이익']:,} 억", f"{current['당기순이익'] - previous['당기순이익']:,} 억")
+    col3.metric("영업현금흐름(OCF)", f"{current['영업현금흐름(OCF)']:,} 억", f"{current['영업현금흐름(OCF)'] - previous['영업현금흐름(OCF)']:,} 억")
+
+    # 시각화: 순이익 vs OCF 비교 바 차트
+    fig_ocf = go.Figure()
+    fig_ocf.add_trace(go.Bar(x=company_data['연도'], y=company_data['당기순이익'], name='당기순이익', marker_color='#A9A9A9'))
+    fig_ocf.add_trace(go.Bar(x=company_data['연도'], y=company_data['영업현금흐름(OCF)'], name='영업현금흐름(OCF)', marker_color='#1f77b4'))
+    fig_ocf.update_layout(barmode='group', title="당기순이익 vs 영업현금흐름 질적 분석", height=400)
+    st.plotly_chart(fig_ocf, use_container_width=True)
+
+
+    # --- Section 2: 듀퐁 분석 (DuPont Analysis) 전기 대비 증감 분해 ---
+    st.markdown("---")
+    st.subheader("2. 듀퐁 분석 (자기자본이익률 ROE 변동 원인 시각화)")
     
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("분석 대상 기업 수", f"{len(selected_names)}개")
-    col2.metric("🏆 최고 ROE 기업", f"{top_roe_company['기업명']}", f"{top_roe_company['ROE(%)']}%")
-    col3.metric("💰 최고 현금창출 기업", f"{top_cf_company['기업명']}", f"{top_cf_company['현금창출력(%)']}%")
-    col4.metric("⚖️ 그룹 평균 부채비율", f"{avg_debt:.1f}%", delta_color="inverse")
+    # 듀퐁 지표 계산
+    def calc_dupont(row):
+        npm = row['당기순이익'] / row['매출액'] if row['매출액'] else 0 # 매출액순이익률
+        ato = row['매출액'] / row['총자산'] if row['총자산'] else 0 # 총자산회전율
+        em = row['총자산'] / row['자기자본'] if row['자기자본'] else 0 # 재무레버리지
+        roe = npm * ato * em
+        return npm, ato, em, roe
+
+    prev_npm, prev_ato, prev_em, prev_roe = calc_dupont(previous)
+    curr_npm, curr_ato, curr_em, curr_roe = calc_dupont(current)
+
+    # 듀퐁 분석 지표 비교 테이블
+    dupont_df = pd.DataFrame({
+        '지표 (Indicator)': ['매출액순이익률(NPM)', '총자산회전율(ATO)', '재무레버리지(EM)', '자기자본이익률(ROE)'],
+        '전기 (2024)': [f"{prev_npm:.2%}", f"{prev_ato:.2f}x", f"{prev_em:.2f}x", f"{prev_roe:.2%}"],
+        '당기 (2025)': [f"{curr_npm:.2%}", f"{curr_ato:.2f}x", f"{curr_em:.2f}x", f"{curr_roe:.2%}"],
+        '증감 (Variance)': [f"{(curr_npm - prev_npm):.2%}", f"{(curr_ato - prev_ato):.2f}x", f"{(curr_em - prev_em):.2f}x", f"{(curr_roe - prev_roe):.2%}"]
+    })
     
-    st.markdown("<br>", unsafe_allow_html=True)
+    col4, col5 = st.columns([1, 1.5])
+    with col4:
+        st.dataframe(dupont_df, hide_index=True, use_container_width=True)
+        st.info("💡 **결산 분석 코멘트:** 전기 대비 ROE의 변동 원인을 수익성(NPM), 활동성(ATO), 안정성(EM) 측면에서 분해하여 보여줍니다.")
 
-    # PDF 다운로드
-    pdf_bytes = create_pdf_report(selected_industry, df_finance.sort_values(by='ROE(%)', ascending=False), font_path)
-    col_empty, col_btn = st.columns([4, 1])
-    with col_btn:
-        st.download_button("📄 PDF 리포트 다운로드", data=pdf_bytes, file_name=f"{selected_industry}_리포트.pdf", mime="application/pdf", use_container_width=True)
-
-    # 탭 분할
-    tab1, tab2, tab3 = st.tabs(["📑 심층 재무 & 듀퐁 분석", "🕸️ 기업 다면 평가 (레이더)", "📈 주가 및 이익의 질"])
-
-    with tab1:
-        # 데이터 테이블
-        with st.expander("📊 세부 재무 데이터 표 보기", expanded=False):
-            cols = ['기업명', '매출액(억)', '영업이익(억)', '현금창출력(%)', '부채비율(%)', 'ROE(%)']
-            st.dataframe(df_finance[cols].sort_values(by='ROE(%)', ascending=False), use_container_width=True, hide_index=True)
-            
-        st.subheader("🔬 듀퐁 분석 (DuPont Analysis): ROE 원인 분해")
-        fig_dupont = go.Figure()
-        fig_dupont.add_trace(go.Bar(x=df_finance['기업명'], y=df_finance['순이익률(%)'], name='수익성 (순이익률 %)', marker_color='#1f77b4'))
-        fig_dupont.add_trace(go.Bar(x=df_finance['기업명'], y=df_finance['총자산회전율(배)']*10, name='활동성 (회전율x10)', marker_color='#ff7f0e'))
-        fig_dupont.add_trace(go.Bar(x=df_finance['기업명'], y=df_finance['재무레버리지(배)'], name='재무구조 (레버리지 배)', marker_color='#2ca02c'))
-        fig_dupont.update_layout(barmode='group', template='plotly_white', legend=dict(orientation="h", y=1.1), margin=dict(t=20))
+    # 시각화: 듀퐁 3요소 전기/당기 비교 레이더 차트 (또는 바 차트)
+    with col5:
+        fig_dupont = go.Figure(data=[
+            go.Bar(name='전기 (2024)', x=['매출액순이익률', '총자산회전율', '재무레버리지'], y=[prev_npm, prev_ato, prev_em]),
+            go.Bar(name='당기 (2025)', x=['매출액순이익률', '총자산회전율', '재무레버리지'], y=[curr_npm, curr_ato, curr_em])
+        ])
+        fig_dupont.update_layout(title="듀퐁 핵심 지표 전기 대비 변동(Variance) 비교", barmode='group', height=350)
         st.plotly_chart(fig_dupont, use_container_width=True)
 
-    with tab2:
-        st.subheader("🕸️ 육각형 기업 분석 (Radar Chart)")
-        st.write("기업의 5가지 핵심 재무 역량을 상대 평가하여 강점과 약점을 파악합니다.")
-        categories = ['수익성(순이익률)', '활동성(자산회전율x100)', '안정성(100-부채비율/2)', '현금창출력(%)', 'ROE(%)']
-        fig_radar = go.Figure()
-        for name in selected_names:
-            row = df_finance[df_finance['기업명'] == name].iloc[0]
-            values = [row['순이익률(%)'] * 2.5, row['총자산회전율(배)'] * 80, (200 - row['부채비율(%)']) / 2, row['현금창출력(%)'] / 1.5, row['ROE(%)'] * 2]
-            values.append(values[0])
-            categories_closed = categories + [categories[0]]
-            fig_radar.add_trace(go.Scatterpolar(r=values, theta=categories_closed, fill='toself', name=name))
-        
-        fig_radar.update_layout(
-            polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
-            legend=dict(orientation="h", y=1.1),
-            template='plotly_white', margin=dict(t=20, b=20)
-        )
-        st.plotly_chart(fig_radar, use_container_width=True)
-
-    with tab3:
-        col1_t3, col2_t3 = st.columns(2)
-        with col1_t3:
-            st.subheader("📈 주가 흐름 (최근 1년)")
-            selected_tickers = [company_dict[name] for name in selected_names]
-            stock_data = yf.download(selected_tickers, period="1y")['Close']
-            if not stock_data.empty:
-                plot_df = stock_data.rename(columns={v: k for k, v in company_dict.items()})
-                fig_stock = px.line(plot_df)
-                fig_stock.update_layout(showlegend=False, margin=dict(l=0, r=0, t=30, b=0))
-                st.plotly_chart(fig_stock, use_container_width=True)
-                
-        with col2_t3:
-            st.subheader("📊 이익의 질 (장부상 이익 vs 실제 현금)")
-            fig_cf = px.bar(df_finance, x='기업명', y=['영업이익(억)', '영업현금흐름(억)'], barmode='group', color_discrete_sequence=['#83c9ff', '#182433'])
-            fig_cf.update_layout(legend=dict(orientation="h", y=1.1), margin=dict(l=0, r=0, t=30, b=0))
+else:
+    st.warning("데이터가 부족하여 비교 분석을 수행할 수 없습니다.")
