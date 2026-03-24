@@ -17,7 +17,8 @@ def load_data():
         '당기순이익': [300, 350, -214, 452, 800, 600],
         '총자산': [8000, 8500, 15200, 14850, 20000, 19000],
         '자기자본': [5000, 5300, 11300, 11780, 12000, 11500],
-        '영업현금흐름(OCF)': [400, 450, 158, 620, 1200, 900]
+        # K-IFRS 공식 명칭으로 완벽하게 수정 완료
+        '영업활동현금흐름(OCF)': [400, 450, 158, 620, 1200, 900]
     }
     return pd.DataFrame(data)
 
@@ -55,19 +56,20 @@ if len(company_data) >= 2:
     previous = company_data.iloc[-2]
 
     # --- Section 1: 실질 현금창출력 (OCF) 추적 ---
-    st.subheader("1. 영업현금흐름(OCF) 및 당기순이익 추적")
+    # 소제목 및 메트릭 라벨 수정
+    st.subheader("1. 영업활동현금흐름(OCF) 및 당기순이익 추적")
     st.info("💡 **실무적 해석:** 당기순이익과 OCF의 괴리율을 추적하여 기업의 실질적인 현금창출능력을 평가합니다.")
     
     col1, col2, col3 = st.columns(3)
     col1.metric("당기 매출액", f"{current['매출액']:,} 억", f"{current['매출액'] - previous['매출액']:,} 억")
     col2.metric("당기순이익", f"{current['당기순이익']:,} 억", f"{current['당기순이익'] - previous['당기순이익']:,} 억")
-    col3.metric("영업현금흐름(OCF)", f"{current['영업현금흐름(OCF)']:,} 억", f"{current['영업현금흐름(OCF)'] - previous['영업현금흐름(OCF)']:,} 억")
+    col3.metric("영업활동현금흐름(OCF)", f"{current['영업활동현금흐름(OCF)']:,} 억", f"{current['영업활동현금흐름(OCF)'] - previous['영업활동현금흐름(OCF)']:,} 억")
 
-    # 시각화: 순이익 vs OCF 비교 바 차트
+    # 시각화: 순이익 vs OCF 비교 바 차트 (데이터 키값 및 범례 수정)
     fig_ocf = go.Figure()
     fig_ocf.add_trace(go.Bar(x=company_data['연도'], y=company_data['당기순이익'], name='당기순이익', marker_color='#A9A9A9'))
-    fig_ocf.add_trace(go.Bar(x=company_data['연도'], y=company_data['영업현금흐름(OCF)'], name='영업현금흐름(OCF)', marker_color='#1f77b4'))
-    fig_ocf.update_layout(barmode='group', title="당기순이익 vs 영업현금흐름 질적 분석", height=400)
+    fig_ocf.add_trace(go.Bar(x=company_data['연도'], y=company_data['영업활동현금흐름(OCF)'], name='영업활동현금흐름(OCF)', marker_color='#1f77b4'))
+    fig_ocf.update_layout(barmode='group', title="당기순이익 vs 영업활동현금흐름 질적 분석", height=400)
     st.plotly_chart(fig_ocf, use_container_width=True)
 
     # --- Section 2: 듀퐁 분석 (DuPont Analysis) 전기 대비 증감 분해 ---
