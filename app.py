@@ -5,41 +5,31 @@ import plotly.graph_objects as go
 # 1. 페이지 기본 설정
 st.set_page_config(page_title="재무/현금흐름 분석 대시보드", page_icon="📊", layout="wide")
 
-# 2. 가상 재무 데이터 생성 (또는 민준님의 실제 데이터)
+# 2. 가상 재무 데이터 생성 (컴투스 데이터가 기본으로 뜨도록 순서 조정)
 @st.cache_data
 def load_data():
-    # 데이터베이스나 엑셀 파일에서 첫 번째가 '광고업'이어도 상관없습니다.
     data = {
         '연도': ['2024', '2025', '2024', '2025', '2024', '2025'],
-        '산업군': ['광고업', '광고업', '게임업', '게임업', 'IT서비스', 'IT서비스'],
-        '기업명': ['A광고사', 'A광고사', '컴투스', '컴투스', 'B서비스', 'B서비스'],
-        '매출액': [5000, 5200, 7084, 8560, 10000, 9500],
-        '당기순이익': [300, 350, -214, 452, 800, 600],
-        '총자산': [8000, 8500, 15200, 14850, 20000, 19000],
-        '자기자본': [5000, 5300, 11300, 11780, 12000, 11500],
-        # K-IFRS 공식 명칭으로 완벽하게 수정 완료
-        '영업활동현금흐름(OCF)': [400, 450, 158, 620, 1200, 900]
+        '산업군': ['게임업', '게임업', '광고업', '광고업', 'IT서비스', 'IT서비스'],
+        '기업명': ['컴투스', '컴투스', 'A광고사', 'A광고사', 'B서비스', 'B서비스'],
+        '매출액': [7084, 8560, 5000, 5200, 10000, 9500],
+        '당기순이익': [-214, 452, 300, 350, 800, 600],
+        '총자산': [15200, 14850, 8000, 8500, 20000, 19000],
+        '자기자본': [11300, 11780, 5000, 5300, 12000, 11500],
+        # K-IFRS 공식 명칭 완벽 적용
+        '영업활동현금흐름(OCF)': [158, 620, 400, 450, 1200, 900]
     }
     return pd.DataFrame(data)
 
 df = load_data()
 
-# 3. 사이드바 설정 (마법의 디폴트 로직 포함)
+# 3. 사이드바 설정 (게임업/컴투스가 무조건 먼저 뜸)
 st.sidebar.header("🔍 분석 필터")
 
 industry_list = df['산업군'].unique().tolist()
+# 기본값을 0번 인덱스('게임업')로 고정
+selected_industry = st.sidebar.selectbox("🏢 산업군 선택", industry_list, index=0)
 
-# [핵심] 리스트 안의 글자 중 '게임'이라는 단어가 포함되어 있으면 무조건 그 번호를 찾습니다.
-default_index = 0  # 기본값 0번 설정 (만약 못 찾으면 첫 번째 띄움)
-for i, industry in enumerate(industry_list):
-    if '게임' in str(industry):  # '게임', '게임업', ' 게임 ' 등 전부 커버
-        default_index = i
-        break  # 찾으면 바로 멈춤
-
-# selectbox에 찾은 번호 적용
-selected_industry = st.sidebar.selectbox("🏢 산업군 선택", industry_list, index=default_index)
-
-# 선택된 산업군에 맞는 기업만 필터링
 filtered_companies = df[df['산업군'] == selected_industry]['기업명'].unique()
 selected_company = st.sidebar.selectbox("🏢 기업 선택", filtered_companies)
 
@@ -56,20 +46,20 @@ if len(company_data) >= 2:
     previous = company_data.iloc[-2]
 
     # --- Section 1: 실질 현금창출력 (OCF) 추적 ---
-    # 소제목 및 메트릭 라벨 수정
     st.subheader("1. 영업활동현금흐름(OCF) 및 당기순이익 추적")
     st.info("💡 **실무적 해석:** 당기순이익과 OCF의 괴리율을 추적하여 기업의 실질적인 현금창출능력을 평가합니다.")
     
     col1, col2, col3 = st.columns(3)
     col1.metric("당기 매출액", f"{current['매출액']:,} 억", f"{current['매출액'] - previous['매출액']:,} 억")
     col2.metric("당기순이익", f"{current['당기순이익']:,} 억", f"{current['당기순이익'] - previous['당기순이익']:,} 억")
+    # 메트릭 라벨 OCF로 변경 완료
     col3.metric("영업활동현금흐름(OCF)", f"{current['영업활동현금흐름(OCF)']:,} 억", f"{current['영업활동현금흐름(OCF)'] - previous['영업활동현금흐름(OCF)']:,} 억")
 
-    # 시각화: 순이익 vs OCF 비교 바 차트 (데이터 키값 및 범례 수정)
+    # 시각화: 순이익 vs OCF 비교 바 차트 
     fig_ocf = go.Figure()
     fig_ocf.add_trace(go.Bar(x=company_data['연도'], y=company_data['당기순이익'], name='당기순이익', marker_color='#A9A9A9'))
     fig_ocf.add_trace(go.Bar(x=company_data['연도'], y=company_data['영업활동현금흐름(OCF)'], name='영업활동현금흐름(OCF)', marker_color='#1f77b4'))
-    fig_ocf.update_layout(barmode='group', title="당기순이익 vs 영업활동현금흐름 질적 분석", height=400)
+    fig_ocf.update_layout(barmode='group', title="당기순이익 vs 영업활동현금흐름(OCF) 질적 분석", height=400)
     st.plotly_chart(fig_ocf, use_container_width=True)
 
     # --- Section 2: 듀퐁 분석 (DuPont Analysis) 전기 대비 증감 분해 ---
@@ -87,18 +77,24 @@ if len(company_data) >= 2:
     prev_npm, prev_ato, prev_em, prev_roe = calc_dupont(previous)
     curr_npm, curr_ato, curr_em, curr_roe = calc_dupont(current)
 
-    # 듀퐁 분석 지표 비교 테이블
+    # 듀퐁 분석 지표 비교 테이블 (%p 수정 반영)
     dupont_df = pd.DataFrame({
         '지표 (Indicator)': ['매출액순이익률(NPM)', '총자산회전율(ATO)', '재무레버리지(EM)', '자기자본이익률(ROE)'],
         '전기 (2024)': [f"{prev_npm:.2%}", f"{prev_ato:.2f}x", f"{prev_em:.2f}x", f"{prev_roe:.2%}"],
         '당기 (2025)': [f"{curr_npm:.2%}", f"{curr_ato:.2f}x", f"{curr_em:.2f}x", f"{curr_roe:.2%}"],
-        '증감 (Variance)': [f"{(curr_npm - prev_npm):.2%}", f"{(curr_ato - prev_ato):.2f}x", f"{(curr_em - prev_em):.2f}x", f"{(curr_roe - prev_roe):.2%}"]
+        '증감 (Variance)': [
+            f"{(curr_npm - prev_npm) * 100:.2f}%p", 
+            f"{(curr_ato - prev_ato):.2f}x", 
+            f"{(curr_em - prev_em):.2f}x", 
+            f"{(curr_roe - prev_roe) * 100:.2f}%p"
+        ]
     })
     
     col4, col5 = st.columns([1, 1.5])
     with col4:
         st.dataframe(dupont_df, hide_index=True, use_container_width=True)
-        st.info("💡 **결산 분석 코멘트:** 전기 대비 ROE의 변동 원인을 수익성(NPM), 활동성(ATO), 안정성(EM) 측면에서 분해하여 보여줍니다.")
+        # 기말 잔액 주석 추가 완료
+        st.info("💡 **결산 분석 코멘트:** 전기 대비 ROE의 변동 원인을 수익성(NPM), 활동성(ATO), 안정성(EM) 측면에서 분해하여 보여줍니다. (※ 본 분석의 자산 및 자본 지표는 기말 잔액 기준입니다.)")
 
     # 시각화: 듀퐁 핵심 지표 바 차트
     with col5:
