@@ -5,36 +5,32 @@ import plotly.graph_objects as go
 # 1. 페이지 기본 설정
 st.set_page_config(page_title="재무/현금흐름 분석 대시보드", page_icon="📊", layout="wide")
 
-# 2. 가상 재무 데이터 생성 (마르헨제이 데이터가 기본으로 뜨도록 순서 및 산업군 조정)
+# 2. 가상 재무 데이터 생성
 @st.cache_data
 def load_data():
     data = {
         '연도': ['2024', '2025', '2024', '2025', '2024', '2025'],
         '산업군': ['패션/이커머스', '패션/이커머스', '애슬레저/의류', '애슬레저/의류', '패션 플랫폼', '패션 플랫폼'],
         '기업명': ['알비이엔씨(마르헨제이)', '알비이엔씨(마르헨제이)', '브랜드엑스코퍼레이션', '브랜드엑스코퍼레이션', '무신사', '무신사'],
-        # 알비이엔씨(마르헨제이)의 고속 성장 트렌드 가상 반영 (단위: 억 원)
         '매출액': [350, 520, 2100, 2300, 7000, 9900],
         '당기순이익': [25, 45, 120, 150, -100, 300],
         '총자산': [180, 250, 1500, 1700, 12000, 15000],
         '자기자본': [80, 125, 800, 950, 6000, 6500],
-        # 고속 성장 중인 이커머스의 현금창출력(OCF) 지표
         '영업활동현금흐름(OCF)': [30, 60, 140, 180, 500, 800]
     }
     return pd.DataFrame(data)
 
 df = load_data()
 
-# 3. 사이드바 설정 (패션/이커머스 및 알비이엔씨가 무조건 먼저 뜸)
+# 3. 사이드바 설정
 st.sidebar.header("🔍 분석 필터")
 
 industry_list = df['산업군'].unique().tolist()
-# 기본값을 0번 인덱스('패션/이커머스')로 고정
 selected_industry = st.sidebar.selectbox("🏢 산업군 선택", industry_list, index=0)
 
 filtered_companies = df[df['산업군'] == selected_industry]['기업명'].unique()
 selected_company = st.sidebar.selectbox("🏢 기업 선택", filtered_companies)
 
-# 최종 선택된 기업 데이터
 company_data = df[df['기업명'] == selected_company].sort_values('연도').reset_index(drop=True)
 
 # 4. 메인 대시보드 화면
@@ -42,7 +38,6 @@ st.title(f"📊 {selected_company} 재무 및 현금흐름 분석 대시보드")
 st.markdown("---")
 
 if len(company_data) >= 2:
-    # 당기(2025) 및 전기(2024) 데이터 추출
     current = company_data.iloc[-1]
     previous = company_data.iloc[-2]
 
@@ -55,18 +50,18 @@ if len(company_data) >= 2:
     col2.metric("당기순이익", f"{current['당기순이익']:,} 억", f"{current['당기순이익'] - previous['당기순이익']:,} 억")
     col3.metric("영업활동현금흐름(OCF)", f"{current['영업활동현금흐름(OCF)']:,} 억", f"{current['영업활동현금흐름(OCF)'] - previous['영업활동현금흐름(OCF)']:,} 억")
 
-    # 시각화: 순이익 vs OCF 비교 바 차트 
     fig_ocf = go.Figure()
     fig_ocf.add_trace(go.Bar(x=company_data['연도'], y=company_data['당기순이익'], name='당기순이익', marker_color='#A9A9A9'))
     fig_ocf.add_trace(go.Bar(x=company_data['연도'], y=company_data['영업활동현금흐름(OCF)'], name='영업활동현금흐름(OCF)', marker_color='#1f77b4'))
     fig_ocf.update_layout(barmode='group', title="당기순이익 vs 영업활동현금흐름(OCF) 질적 분석", height=400)
-    st.plotly_chart(fig_ocf, use_container_width=True)
+    
+    # ⚠️ 최신 문법 반영 (width='stretch')
+    st.plotly_chart(fig_ocf, width='stretch')
 
-    # --- Section 2: 듀퐁 분석 (DuPont Analysis) 전기 대비 증감 분해 ---
+    # --- Section 2: 듀퐁 분석 (DuPont Analysis) ---
     st.markdown("---")
     st.subheader("2. 듀퐁 분석 (자기자본이익률 ROE 변동 원인 시각화)")
     
-    # 듀퐁 지표 계산
     def calc_dupont(row):
         npm = row['당기순이익'] / row['매출액'] if row['매출액'] else 0
         ato = row['매출액'] / row['총자산'] if row['총자산'] else 0
@@ -77,7 +72,6 @@ if len(company_data) >= 2:
     prev_npm, prev_ato, prev_em, prev_roe = calc_dupont(previous)
     curr_npm, curr_ato, curr_em, curr_roe = calc_dupont(current)
 
-    # 듀퐁 분석 지표 비교 테이블
     dupont_df = pd.DataFrame({
         '지표 (Indicator)': ['매출액순이익률(NPM)', '총자산회전율(ATO)', '재무레버리지(EM)', '자기자본이익률(ROE)'],
         '전기 (2024)': [f"{prev_npm:.2%}", f"{prev_ato:.2f}x", f"{prev_em:.2f}x", f"{prev_roe:.2%}"],
@@ -92,17 +86,19 @@ if len(company_data) >= 2:
     
     col4, col5 = st.columns([1, 1.5])
     with col4:
-        st.dataframe(dupont_df, hide_index=True, use_container_width=True)
+        # ⚠️ 최신 문법 반영 (width='stretch')
+        st.dataframe(dupont_df, hide_index=True, width='stretch')
         st.info("💡 **결산 분석 코멘트:** 전기 대비 ROE의 변동 원인을 수익성(NPM), 활동성(ATO), 안정성(EM) 측면에서 분해하여 보여줍니다. (※ 본 분석의 자산 및 자본 지표는 기말 잔액 기준입니다.)")
 
-    # 시각화: 듀퐁 핵심 지표 바 차트
     with col5:
         fig_dupont = go.Figure(data=[
             go.Bar(name='전기 (2024)', x=['매출액순이익률', '총자산회전율', '재무레버리지'], y=[prev_npm, prev_ato, prev_em], marker_color='#A9A9A9'),
             go.Bar(name='당기 (2025)', x=['매출액순이익률', '총자산회전율', '재무레버리지'], y=[curr_npm, curr_ato, curr_em], marker_color='#1f77b4')
         ])
         fig_dupont.update_layout(title="듀퐁 핵심 지표 전기 대비 변동(Variance) 비교", barmode='group', height=350)
-        st.plotly_chart(fig_dupont, use_container_width=True)
+        
+        # ⚠️ 최신 문법 반영 (width='stretch')
+        st.plotly_chart(fig_dupont, width='stretch')
 
 else:
     st.warning("데이터가 부족하여 비교 분석을 수행할 수 없습니다.")
