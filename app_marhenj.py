@@ -1,11 +1,12 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import plotly.graph_objects as go
 
 # 1. 페이지 기본 설정
-st.set_page_config(page_title="재무/현금흐름 분석 대시보드", page_icon="📊", layout="wide")
+st.set_page_config(page_title="경영관리/재무 분석 대시보드", page_icon="📊", layout="wide")
 
-# 2. 가상 재무 데이터 생성
+# 2. 가상 재무 데이터 생성 (마르헨제이 맞춤형)
 @st.cache_data
 def load_data():
     data = {
@@ -34,7 +35,7 @@ selected_company = st.sidebar.selectbox("🏢 기업 선택", filtered_companies
 company_data = df[df['기업명'] == selected_company].sort_values('연도').reset_index(drop=True)
 
 # 4. 메인 대시보드 화면
-st.title(f"📊 {selected_company} 재무 및 현금흐름 분석 대시보드")
+st.title(f"📊 {selected_company} 경영관리 및 재무 분석 대시보드")
 st.markdown("---")
 
 if len(company_data) >= 2:
@@ -42,7 +43,7 @@ if len(company_data) >= 2:
     previous = company_data.iloc[-2]
 
     # --- Section 1: 실질 현금창출력 (OCF) 추적 ---
-    st.subheader("1. 영업활동현금흐름(OCF) 및 당기순이익 추적")
+    st.subheader("1. 재무 분석: 영업활동현금흐름(OCF) 및 수익성 추적")
     st.info("💡 **실무적 해석:** 당기순이익과 OCF의 괴리율을 추적하여, 외형 성장(매출) 이면에 기업의 실질적인 현금창출능력과 운전자본 부담이 얼마나 견고한지 평가합니다.")
     
     col1, col2, col3 = st.columns(3)
@@ -55,12 +56,11 @@ if len(company_data) >= 2:
     fig_ocf.add_trace(go.Bar(x=company_data['연도'], y=company_data['영업활동현금흐름(OCF)'], name='영업활동현금흐름(OCF)', marker_color='#1f77b4'))
     fig_ocf.update_layout(barmode='group', title="당기순이익 vs 영업활동현금흐름(OCF) 질적 분석", height=400)
     
-    # ⚠️ 최신 문법 반영 (width='stretch')
     st.plotly_chart(fig_ocf, width='stretch')
 
     # --- Section 2: 듀퐁 분석 (DuPont Analysis) ---
     st.markdown("---")
-    st.subheader("2. 듀퐁 분석 (자기자본이익률 ROE 변동 원인 시각화)")
+    st.subheader("2. 재무 분석: 듀퐁 분석 (자기자본이익률 ROE 변동 원인 시각화)")
     
     def calc_dupont(row):
         npm = row['당기순이익'] / row['매출액'] if row['매출액'] else 0
@@ -86,9 +86,8 @@ if len(company_data) >= 2:
     
     col4, col5 = st.columns([1, 1.5])
     with col4:
-        # ⚠️ 최신 문법 반영 (width='stretch')
         st.dataframe(dupont_df, hide_index=True, width='stretch')
-        st.info("💡 **결산 분석 코멘트:** 전기 대비 ROE의 변동 원인을 수익성(NPM), 활동성(ATO), 안정성(EM) 측면에서 분해하여 보여줍니다. (※ 본 분석의 자산 및 자본 지표는 기말 잔액 기준입니다.)")
+        st.info("💡 **결산 분석 코멘트:** 전기 대비 ROE의 변동 원인을 수익성(NPM), 활동성(ATO), 안정성(EM) 측면에서 분해하여 보여줍니다.")
 
     with col5:
         fig_dupont = go.Figure(data=[
@@ -97,8 +96,47 @@ if len(company_data) >= 2:
         ])
         fig_dupont.update_layout(title="듀퐁 핵심 지표 전기 대비 변동(Variance) 비교", barmode='group', height=350)
         
-        # ⚠️ 최신 문법 반영 (width='stretch')
         st.plotly_chart(fig_dupont, width='stretch')
 
 else:
     st.warning("데이터가 부족하여 비교 분석을 수행할 수 없습니다.")
+
+# --- Section 3: 경영관리 실무 (법인카드 및 비용 통제) ---
+st.markdown("---")
+st.subheader("3. 경영관리 실무: 부서별 법인카드 모니터링 및 이상치 탐지")
+st.info("💡 **올라운더 실무 적용:** 매월 발생하는 수백 건의 법인카드 내역 중, 사내 규정 위반 의심 건(주말/심야 결제, 고액 결제)을 파이썬으로 자동 필터링하여 비용 검증 및 정산 업무의 리드타임을 획기적으로 단축합니다.")
+
+# 가상 법인카드 데이터 생성
+np.random.seed(42) 
+
+card_data = pd.DataFrame({
+    '결제일자': pd.date_range(start='2025-03-01', periods=50, freq='D').strftime('%Y-%m-%d'),
+    '부서명': np.random.choice(['마케팅팀', '디자인팀', '경영지원팀', '글로벌영업팀', '물류팀'], 50),
+    '사용처': np.random.choice(['네이버/메타 광고', '비품(쿠팡)', '스타벅스', '야근식대(배달의민족)', '항공권(해외출장)', '주말/심야_택시', '고가_소프트웨어_구독'], 50),
+    '결제금액': np.random.randint(10000, 1500000, 50)
+})
+
+col6, col7 = st.columns([1, 1])
+
+with col6:
+    st.markdown("#### 📊 부서별 비용 집행 비율")
+    # 부서별 사용금액 도넛 차트
+    dept_expense = card_data.groupby('부서명')['결제금액'].sum().reset_index()
+    fig_pie = go.Figure(data=[go.Pie(labels=dept_expense['부서명'], values=dept_expense['결제금액'], hole=.4)])
+    fig_pie.update_layout(height=350, margin=dict(t=30, b=0, l=0, r=0))
+    st.plotly_chart(fig_pie, width='stretch')
+
+with col7:
+    st.markdown("#### 🚨 비용 증빙 집중 검토 대상 (이상치 탐지)")
+    st.markdown("**필터링 조건:** 건당 50만 원 이상 고액 결제 **OR** 주말/심야 휴일 결제 건")
+    
+    # 이상치 필터링 로직
+    anomaly_df = card_data[
+        (card_data['결제금액'] >= 500000) | 
+        (card_data['사용처'].str.contains('주말|심야'))
+    ].sort_values('결제금액', ascending=False).reset_index(drop=True)
+    
+    # 금액 포맷팅 (보기 편하게 천단위 콤마 추가)
+    anomaly_df['결제금액'] = anomaly_df['결제금액'].apply(lambda x: f"{x:,.0f} 원")
+    
+    st.dataframe(anomaly_df, height=300, width='stretch')
