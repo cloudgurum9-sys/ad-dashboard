@@ -1,31 +1,39 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px  # 예쁜 차트를 만들기 위한 라이브러리 추가
+import plotly.express as px
 
 # 1. 페이지 기본 설정
 st.set_page_config(page_title="한라엔컴 재무 대시보드", layout="wide")
 
 # ==========================================
-# 💡 [핵심 추가] CSS 주입을 통한 배경/폰트 색상 강제 고정
+# 💡 [핵심 해결] CSS 주입 - 다크모드 충돌 방지 및 폰트 강제 고정
 # ==========================================
 st.markdown("""
 <style>
-    /* 메인 화면 배경색 (연한 회색) */
-    .stApp {
-        background-color: #F4F6F9;
+    /* 메인 화면 및 사이드바 배경색 */
+    .stApp { background-color: #F4F6F9 !important; }
+    [data-testid="stSidebar"] { background-color: #E9ECEF !important; }
+    
+    /* 제목, 본문, 라벨 등 기본 텍스트 검은색 고정 */
+    h1, h2, h3, h4, h5, h6, p, label, li { color: #111111 !important; }
+    
+    /* 💡 1. 사이드바 필터(Selectbox) 배경 및 글씨색 복구 */
+    div[data-baseweb="select"] > div { 
+        background-color: #FFFFFF !important; 
+        color: #111111 !important; 
+        border: 1px solid #CCCCCC !important;
     }
-    /* 사이드바 배경색 (메인보다 살짝 어두운 회색) */
-    [data-testid="stSidebar"] {
-        background-color: #E9ECEF;
-    }
-    /* 모든 텍스트 색상을 검은색으로 강제 적용 (다크모드 무력화) */
-    .stApp, .stApp p, .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6, .stApp span, .stApp div, .stApp label, .stApp li {
-        color: #111111 !important;
-    }
-    /* 표(DataFrame) 내부 텍스트 색상 */
-    th, td {
-        color: #111111 !important;
-    }
+    div[data-baseweb="select"] span { color: #111111 !important; }
+    ul[role="listbox"] { background-color: #FFFFFF !important; }
+    ul[role="listbox"] li { color: #111111 !important; }
+    
+    /* 💡 2. 상단 지표(Metric) 숫자 색상 고정 (증감 화살표 색상은 유지) */
+    [data-testid="stMetricValue"] { color: #111111 !important; }
+    
+    /* 💡 3. 표(Table) 배경 및 텍스트 강제 고정 */
+    table { width: 100%; border-collapse: collapse; border: 1px solid #DDDDDD !important; }
+    th { background-color: #E9ECEF !important; color: #111111 !important; text-align: center !important; }
+    td { background-color: #FFFFFF !important; color: #111111 !important; text-align: left !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -39,7 +47,7 @@ st.title("📊 한라엔컴 재무결산 및 비용통제 대시보드")
 st.markdown("---")
 
 # ==========================================
-# 섹션 1. 결산 분석 (누운 막대그래프 세우기)
+# 섹션 1. 결산 분석
 # ==========================================
 st.header("1. 결산 분석: 영업활동현금흐름(OCF) 및 매출채권 리스크 트래킹")
 
@@ -53,18 +61,16 @@ with col1:
     st.metric(label="당기순이익", value="200억", delta="20억 (전년 대비)")
     st.metric(label="영업활동현금흐름(OCF)", value="80억", delta="-20억 (전년 대비)", delta_color="inverse")
 with col2:
-    # 데이터 세팅
     chart_data = pd.DataFrame({
         "연도": ["2024", "2025"],
         "당기순이익": [180, 200],
         "영업활동현금흐름(OCF)": [100, 80]
     })
     
-    # 💡 누운 그래프를 세로로 반듯하게 세우는 Plotly 막대그래프
     fig_bar = px.bar(chart_data, x="연도", y=["당기순이익", "영업활동현금흐름(OCF)"], 
                      barmode="group", title="당기순이익 vs 영업활동현금흐름(OCF) 괴리율 분석")
     
-    # 💡 [추가] 차트 배경을 투명하게 만들고 폰트를 검은색으로 설정 (회색 배경과 위화감 없애기)
+    # 차트 배경 투명화 및 폰트 색상 강제
     fig_bar.update_layout(
         legend_title_text='구분', 
         xaxis_title="", 
@@ -75,10 +81,10 @@ with col2:
     )
     st.plotly_chart(fig_bar, use_container_width=True)
 
-st.markdown("<br><br>", unsafe_allow_html=True) # 여백 추가
+st.markdown("<br><br>", unsafe_allow_html=True)
 
 # ==========================================
-# 섹션 2. 비용 통제 (사라진 원형 그래프 부활!)
+# 섹션 2. 비용 통제 
 # ==========================================
 st.header("2. 전국 현장(공장) 비용 증빙 통제 및 이상치 탐지")
 
@@ -96,7 +102,6 @@ def generate_halla_expenses():
     ]
     return pd.DataFrame(anomalies)
 
-# 숫자형 데이터 원본 (그래프용)
 report_numeric = generate_halla_expenses()
 
 # 문자형 데이터 (표 출력용 - 천 단위 콤마)
@@ -104,19 +109,19 @@ report_display = report_numeric.copy()
 report_display['청구금액(원)'] = report_display['청구금액'].apply(lambda x: f"{x:,}")
 report_display = report_display.drop(columns=['청구금액'])
 
-# 💡 사라졌던 원형 그래프(도넛 차트) 부활
+# 💡 st.table을 위한 인덱스(맨 왼쪽 숫자 열) 숨기기 트릭
+report_display.index = [''] * len(report_display)
+
 fig_pie = px.pie(report_numeric, values='청구금액', names='발생현장(부서)', hole=0.3,
                  title="🚨 부서별 이상치 결제 금액 비중")
 fig_pie.update_traces(textposition='inside', textinfo='percent+label')
 
-# 💡 [추가] 파이 차트 배경 투명화 및 폰트 색상 강제
 fig_pie.update_layout(
     paper_bgcolor='rgba(0,0,0,0)', 
     plot_bgcolor='rgba(0,0,0,0)',
     font=dict(color='#111111')
 )
 
-# 화면을 반으로 나누어 왼쪽엔 원형 그래프, 오른쪽엔 표 배치
 col_pie, col_table = st.columns([1, 1.5])
 
 with col_pie:
@@ -124,4 +129,5 @@ with col_pie:
     
 with col_table:
     st.markdown("**[전표 집중 검토 대상 (고액 300만 원 이상 및 주말 결제 건)]**")
-    st.dataframe(report_display, use_container_width=True, hide_index=True)
+    # 💡 st.dataframe 대신 CSS 색상 적용이 완벽하게 들어가는 st.table 사용
+    st.table(report_display)
