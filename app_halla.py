@@ -1,6 +1,18 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import os
+
+# ==========================================
+# 💡 [마법의 코드] 실행할 때 알아서 '하얀 테마(Light)' 설정 파일을 생성합니다.
+# 다크모드로 글씨가 안 보이는 현상을 원천 차단합니다!
+# ==========================================
+if not os.path.exists(".streamlit"):
+    os.makedirs(".streamlit")
+
+with open(".streamlit/config.toml", "w", encoding="utf-8") as f:
+    f.write('[theme]\nbase="light"\n')
+# ==========================================
 
 # 1. 페이지 기본 설정
 st.set_page_config(page_title="한라엔컴 재무 대시보드", layout="wide")
