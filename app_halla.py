@@ -6,34 +6,48 @@ import plotly.express as px
 st.set_page_config(page_title="한라엔컴 재무 대시보드", layout="wide")
 
 # ==========================================
-# 💡 [핵심 해결] CSS 주입 - 다크모드 충돌 방지 및 폰트 강제 고정
+# 💡 [초강력 CSS 주입] 표, 필터, 텍스트 색상 완벽 고정
 # ==========================================
 st.markdown("""
 <style>
-    /* 메인 화면 및 사이드바 배경색 */
+    /* 1. 전체 배경색 고정 */
     .stApp { background-color: #F4F6F9 !important; }
     [data-testid="stSidebar"] { background-color: #E9ECEF !important; }
     
-    /* 제목, 본문, 라벨 등 기본 텍스트 검은색 고정 */
-    h1, h2, h3, h4, h5, h6, p, label, li { color: #111111 !important; }
-    
-    /* 💡 1. 사이드바 필터(Selectbox) 배경 및 글씨색 복구 */
-    div[data-baseweb="select"] > div { 
-        background-color: #FFFFFF !important; 
-        color: #111111 !important; 
-        border: 1px solid #CCCCCC !important;
+    /* 2. 일반 텍스트(제목, 본문, 라벨) 검은색 고정 */
+    .stMarkdown p, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3, label { 
+        color: #000000 !important; 
     }
-    div[data-baseweb="select"] span { color: #111111 !important; }
-    ul[role="listbox"] { background-color: #FFFFFF !important; }
-    ul[role="listbox"] li { color: #111111 !important; }
-    
-    /* 💡 2. 상단 지표(Metric) 숫자 색상 고정 (증감 화살표 색상은 유지) */
-    [data-testid="stMetricValue"] { color: #111111 !important; }
-    
-    /* 💡 3. 표(Table) 배경 및 텍스트 강제 고정 */
-    table { width: 100%; border-collapse: collapse; border: 1px solid #DDDDDD !important; }
-    th { background-color: #E9ECEF !important; color: #111111 !important; text-align: center !important; }
-    td { background-color: #FFFFFF !important; color: #111111 !important; text-align: left !important; }
+    [data-testid="stMetricValue"] {
+        color: #000000 !important;
+    }
+
+    /* 3. 🚨 표(st.table) 완전 강제 고정 🚨 */
+    table, th, td, tr { 
+        color: #000000 !important; 
+        border: 1px solid #DDDDDD !important;
+    }
+    th { 
+        background-color: #E9ECEF !important; 
+        font-weight: bold !important;
+        text-align: center !important;
+    }
+    td { 
+        background-color: #FFFFFF !important; 
+        text-align: left !important;
+    }
+
+    /* 4. 🚨 필터(Selectbox) 및 드롭다운 메뉴 글씨 고정 🚨 */
+    div[data-baseweb="select"] * {
+        color: #000000 !important;
+    }
+    div[data-baseweb="select"] > div {
+        background-color: #FFFFFF !important;
+    }
+    ul[data-baseweb="menu"] * {
+        color: #000000 !important;
+        background-color: #FFFFFF !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -70,14 +84,13 @@ with col2:
     fig_bar = px.bar(chart_data, x="연도", y=["당기순이익", "영업활동현금흐름(OCF)"], 
                      barmode="group", title="당기순이익 vs 영업활동현금흐름(OCF) 괴리율 분석")
     
-    # 차트 배경 투명화 및 폰트 색상 강제
     fig_bar.update_layout(
         legend_title_text='구분', 
         xaxis_title="", 
         yaxis_title="금액 (억원)",
         paper_bgcolor='rgba(0,0,0,0)', 
         plot_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='#111111')
+        font=dict(color='#000000')
     )
     st.plotly_chart(fig_bar, use_container_width=True)
 
@@ -109,7 +122,7 @@ report_display = report_numeric.copy()
 report_display['청구금액(원)'] = report_display['청구금액'].apply(lambda x: f"{x:,}")
 report_display = report_display.drop(columns=['청구금액'])
 
-# 💡 st.table을 위한 인덱스(맨 왼쪽 숫자 열) 숨기기 트릭
+# st.table을 위한 인덱스 숨기기 트릭
 report_display.index = [''] * len(report_display)
 
 fig_pie = px.pie(report_numeric, values='청구금액', names='발생현장(부서)', hole=0.3,
@@ -119,7 +132,7 @@ fig_pie.update_traces(textposition='inside', textinfo='percent+label')
 fig_pie.update_layout(
     paper_bgcolor='rgba(0,0,0,0)', 
     plot_bgcolor='rgba(0,0,0,0)',
-    font=dict(color='#111111')
+    font=dict(color='#000000')
 )
 
 col_pie, col_table = st.columns([1, 1.5])
@@ -129,5 +142,5 @@ with col_pie:
     
 with col_table:
     st.markdown("**[전표 집중 검토 대상 (고액 300만 원 이상 및 주말 결제 건)]**")
-    # 💡 st.dataframe 대신 CSS 색상 적용이 완벽하게 들어가는 st.table 사용
+    # CSS 색상 강제 적용을 받는 HTML 형태의 st.table 출력
     st.table(report_display)
