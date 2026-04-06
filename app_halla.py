@@ -5,52 +5,6 @@ import plotly.express as px
 # 1. 페이지 기본 설정
 st.set_page_config(page_title="한라엔컴 재무 대시보드", layout="wide")
 
-# ==========================================
-# 💡 [초강력 CSS 주입] 표, 필터, 텍스트 색상 완벽 고정
-# ==========================================
-st.markdown("""
-<style>
-    /* 1. 전체 배경색 고정 */
-    .stApp { background-color: #F4F6F9 !important; }
-    [data-testid="stSidebar"] { background-color: #E9ECEF !important; }
-    
-    /* 2. 일반 텍스트(제목, 본문, 라벨) 검은색 고정 */
-    .stMarkdown p, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3, label { 
-        color: #000000 !important; 
-    }
-    [data-testid="stMetricValue"] {
-        color: #000000 !important;
-    }
-
-    /* 3. 🚨 표(st.table) 완전 강제 고정 🚨 */
-    table, th, td, tr { 
-        color: #000000 !important; 
-        border: 1px solid #DDDDDD !important;
-    }
-    th { 
-        background-color: #E9ECEF !important; 
-        font-weight: bold !important;
-        text-align: center !important;
-    }
-    td { 
-        background-color: #FFFFFF !important; 
-        text-align: left !important;
-    }
-
-    /* 4. 🚨 필터(Selectbox) 및 드롭다운 메뉴 글씨 고정 🚨 */
-    div[data-baseweb="select"] * {
-        color: #000000 !important;
-    }
-    div[data-baseweb="select"] > div {
-        background-color: #FFFFFF !important;
-    }
-    ul[data-baseweb="menu"] * {
-        color: #000000 !important;
-        background-color: #FFFFFF !important;
-    }
-</style>
-""", unsafe_allow_html=True)
-
 # 2. 사이드바 (필터)
 st.sidebar.header("분석 필터")
 industry_selection = st.sidebar.selectbox("산업군 선택", ["레미콘/건설자재", "제조업 일반"])
@@ -83,15 +37,7 @@ with col2:
     
     fig_bar = px.bar(chart_data, x="연도", y=["당기순이익", "영업활동현금흐름(OCF)"], 
                      barmode="group", title="당기순이익 vs 영업활동현금흐름(OCF) 괴리율 분석")
-    
-    fig_bar.update_layout(
-        legend_title_text='구분', 
-        xaxis_title="", 
-        yaxis_title="금액 (억원)",
-        paper_bgcolor='rgba(0,0,0,0)', 
-        plot_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='#000000')
-    )
+    fig_bar.update_layout(legend_title_text='구분', xaxis_title="", yaxis_title="금액 (억원)")
     st.plotly_chart(fig_bar, use_container_width=True)
 
 st.markdown("<br><br>", unsafe_allow_html=True)
@@ -121,19 +67,11 @@ report_numeric = generate_halla_expenses()
 report_display = report_numeric.copy()
 report_display['청구금액(원)'] = report_display['청구금액'].apply(lambda x: f"{x:,}")
 report_display = report_display.drop(columns=['청구금액'])
-
-# st.table을 위한 인덱스 숨기기 트릭
 report_display.index = [''] * len(report_display)
 
 fig_pie = px.pie(report_numeric, values='청구금액', names='발생현장(부서)', hole=0.3,
                  title="🚨 부서별 이상치 결제 금액 비중")
 fig_pie.update_traces(textposition='inside', textinfo='percent+label')
-
-fig_pie.update_layout(
-    paper_bgcolor='rgba(0,0,0,0)', 
-    plot_bgcolor='rgba(0,0,0,0)',
-    font=dict(color='#000000')
-)
 
 col_pie, col_table = st.columns([1, 1.5])
 
@@ -142,5 +80,4 @@ with col_pie:
     
 with col_table:
     st.markdown("**[전표 집중 검토 대상 (고액 300만 원 이상 및 주말 결제 건)]**")
-    # CSS 색상 강제 적용을 받는 HTML 형태의 st.table 출력
     st.table(report_display)
