@@ -5,6 +5,30 @@ import plotly.express as px  # 예쁜 차트를 만들기 위한 라이브러리
 # 1. 페이지 기본 설정
 st.set_page_config(page_title="한라엔컴 재무 대시보드", layout="wide")
 
+# ==========================================
+# 💡 [핵심 추가] CSS 주입을 통한 배경/폰트 색상 강제 고정
+# ==========================================
+st.markdown("""
+<style>
+    /* 메인 화면 배경색 (연한 회색) */
+    .stApp {
+        background-color: #F4F6F9;
+    }
+    /* 사이드바 배경색 (메인보다 살짝 어두운 회색) */
+    [data-testid="stSidebar"] {
+        background-color: #E9ECEF;
+    }
+    /* 모든 텍스트 색상을 검은색으로 강제 적용 (다크모드 무력화) */
+    .stApp, .stApp p, .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6, .stApp span, .stApp div, .stApp label, .stApp li {
+        color: #111111 !important;
+    }
+    /* 표(DataFrame) 내부 텍스트 색상 */
+    th, td {
+        color: #111111 !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # 2. 사이드바 (필터)
 st.sidebar.header("분석 필터")
 industry_selection = st.sidebar.selectbox("산업군 선택", ["레미콘/건설자재", "제조업 일반"])
@@ -39,7 +63,16 @@ with col2:
     # 💡 누운 그래프를 세로로 반듯하게 세우는 Plotly 막대그래프
     fig_bar = px.bar(chart_data, x="연도", y=["당기순이익", "영업활동현금흐름(OCF)"], 
                      barmode="group", title="당기순이익 vs 영업활동현금흐름(OCF) 괴리율 분석")
-    fig_bar.update_layout(legend_title_text='구분', xaxis_title="", yaxis_title="금액 (억원)")
+    
+    # 💡 [추가] 차트 배경을 투명하게 만들고 폰트를 검은색으로 설정 (회색 배경과 위화감 없애기)
+    fig_bar.update_layout(
+        legend_title_text='구분', 
+        xaxis_title="", 
+        yaxis_title="금액 (억원)",
+        paper_bgcolor='rgba(0,0,0,0)', 
+        plot_bgcolor='rgba(0,0,0,0)',
+        font=dict(color='#111111')
+    )
     st.plotly_chart(fig_bar, use_container_width=True)
 
 st.markdown("<br><br>", unsafe_allow_html=True) # 여백 추가
@@ -75,6 +108,13 @@ report_display = report_display.drop(columns=['청구금액'])
 fig_pie = px.pie(report_numeric, values='청구금액', names='발생현장(부서)', hole=0.3,
                  title="🚨 부서별 이상치 결제 금액 비중")
 fig_pie.update_traces(textposition='inside', textinfo='percent+label')
+
+# 💡 [추가] 파이 차트 배경 투명화 및 폰트 색상 강제
+fig_pie.update_layout(
+    paper_bgcolor='rgba(0,0,0,0)', 
+    plot_bgcolor='rgba(0,0,0,0)',
+    font=dict(color='#111111')
+)
 
 # 화면을 반으로 나누어 왼쪽엔 원형 그래프, 오른쪽엔 표 배치
 col_pie, col_table = st.columns([1, 1.5])
