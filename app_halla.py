@@ -42,7 +42,7 @@ def get_halla_financials_from_dart(api_key):
     OpenDartReader를 이용해 한라엔컴의 가장 최신 재무제표(2024년, 2025년)를 긁어옵니다.
     """
     try:
-        if api_key == "여기에_민준님의_DART_API_키를_넣으세요":
+        if api_key == "be9b8d7fcf7374d13eba8194d37bea70ca047e0f":
             raise ValueError("API 키 미입력")
             
         dart = OpenDartReader(api_key)
