@@ -40,25 +40,27 @@ st.markdown("""
 @st.cache_data
 def get_ybm_revenue_data():
     """
-    YBM 월별 B2C 결제액 및 매출 대체액 샘플 데이터 (단위: 백만 원)
+    YBM 월별 B2C 결제액 및 매출 대체액 샘플 데이터 
+    (가독성을 위해 기존 '백만 원' 단위를 '억 원' 단위로 스케일링)
     """
     return pd.DataFrame({
         "월(Month)": ["1월", "2월", "3월", "4월", "5월", "6월"],
-        "총 결제발생액(선수수익 증가)": [4500, 4200, 5100, 4800, 5300, 4900], 
-        "당월 매출인식액(선수수익 감소)": [4100, 4300, 4600, 4900, 5000, 5100] 
+        "총 결제발생액(선수수익 증가)": [45, 42, 51, 48, 53, 49], 
+        "당월 매출인식액(선수수익 감소)": [41, 43, 46, 49, 50, 51] 
     })
 
 # 데이터 불러오기 및 지표 계산
 chart_data = get_ybm_revenue_data()
-payment_june = int(chart_data.loc[chart_data["월(Month)"]=="6월", "총 결제발생액(선수수익 증가)"].values[0])
-revenue_june = int(chart_data.loc[chart_data["월(Month)"]=="6월", "당월 매출인식액(선수수익 감소)"].values[0])
-payment_may = int(chart_data.loc[chart_data["월(Month)"]=="5월", "총 결제발생액(선수수익 증가)"].values[0])
-revenue_may = int(chart_data.loc[chart_data["월(Month)"]=="5월", "당월 매출인식액(선수수익 감소)"].values[0])
+payment_june = chart_data.loc[chart_data["월(Month)"]=="6월", "총 결제발생액(선수수익 증가)"].values[0]
+revenue_june = chart_data.loc[chart_data["월(Month)"]=="6월", "당월 매출인식액(선수수익 감소)"].values[0]
+payment_may = chart_data.loc[chart_data["월(Month)"]=="5월", "총 결제발생액(선수수익 증가)"].values[0]
+revenue_may = chart_data.loc[chart_data["월(Month)"]=="5월", "당월 매출인식액(선수수익 감소)"].values[0]
 
 col1, col2 = st.columns([1, 2])
 with col1:
-    st.metric(label="6월 총 결제발생액 (B2C)", value=f"{payment_june:,}백만원", delta=f"{payment_june - payment_may:,}백만원 (전월 대비)")
-    st.metric(label="6월 실제 매출인식액", value=f"{revenue_june:,}백만원", delta=f"{revenue_june - revenue_may:,}백만원 (전월 대비)")
+    # 단위 가독성을 억 원 단위로 직관적으로 변경
+    st.metric(label="6월 총 결제발생액 (B2C)", value=f"{payment_june:g}억원", delta=f"{payment_june - payment_may:g}억원 (전월 대비)")
+    st.metric(label="6월 실제 매출인식액", value=f"{revenue_june:g}억원", delta=f"{revenue_june - revenue_may:g}억원 (전월 대비)")
     
 with col2:
     # 이중 Y축을 지원하는 서브플롯 생성
@@ -83,9 +85,9 @@ with col2:
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
     
-    # Y축 이름 설정
-    fig_mixed.update_yaxes(title_text="신규 결제액 (백만원)", secondary_y=False)
-    fig_mixed.update_yaxes(title_text="매출 인식액 (백만원)", showgrid=False, secondary_y=True)
+    # Y축 이름 설정 (단위를 '억원'으로 변경)
+    fig_mixed.update_yaxes(title_text="신규 결제액 (억원)", secondary_y=False)
+    fig_mixed.update_yaxes(title_text="매출 인식액 (억원)", showgrid=False, secondary_y=True)
 
     st.plotly_chart(fig_mixed, use_container_width=True)
 
@@ -94,14 +96,15 @@ st.markdown("<br><br>", unsafe_allow_html=True)
 # ==========================================
 # 섹션 2. 비용 통제 및 대사 (PG정산, 환불, 강사료, 재고)
 # ==========================================
-st.header("2. 데이터 대사 검증(Reconciliation): PG정산 불일치 및 이상치 탐지")
+st.header("2. 데이터 대사 검증: PG정산 불일치 및 이상치 탐지")
 st.markdown("""
-Python Pandas를 활용하여 **내부 ERP 매출 장부**와 **외부 PG사 정산 내역**을 고유 식별자(주문번호 등) 기준으로 자동 병합하고, 
+Python Pandas를 활용하여 **내부 ERP 매출 장부**와 **외부 PG사(결제대행사) 정산 내역**을 고유 식별자(주문번호 등) 기준으로 자동 병합하고, 
 수수료율 오류, 중복 환불, 교재 출고 누락 등의 이상 데이터를 실시간으로 추출한 결과입니다.
 """)
 
 @st.cache_data
 def generate_ybm_anomalies():
+    # 이상치 금액(탐지금액)은 정확한 1원 단위 검증 결과를 보여주기 위해 기존 유지
     anomalies = [
         {"전표일자": "2026-06-25", "데이터 구분": "PG사 정산 대사", "이상치 발생 사유": "신용카드 수수료율 오적용 (정산금액 불일치)", "탐지금액": 8342807},
         {"전표일자": "2026-06-26", "데이터 구분": "이러닝 환불", "이상치 발생 사유": "수강진도율 50% 초과건 전액 환불 (규정 위반)", "탐지금액": 4527419},
