@@ -44,23 +44,23 @@ def get_ybm_revenue_data():
     (가독성을 위해 기존 '백만 원' 단위를 '억 원' 단위로 스케일링)
     """
     return pd.DataFrame({
-        "월(Month)": ["1월", "2월", "3월", "4월", "5월", "6월"],
-        "총 결제발생액(선수수익 증가)": [45, 42, 51, 48, 53, 49], 
-        "당월 매출인식액(선수수익 감소)": [41, 43, 46, 49, 50, 51] 
+        "월(Month)": ["1월", "2월", "3월", "4월"],
+        "총 결제발생액(선수수익 증가)": [45, 42, 51, 48], 
+        "당월 매출인식액(선수수익 감소)": [41, 43, 46, 49] 
     })
 
 # 데이터 불러오기 및 지표 계산
 chart_data = get_ybm_revenue_data()
-payment_june = chart_data.loc[chart_data["월(Month)"]=="6월", "총 결제발생액(선수수익 증가)"].values[0]
-revenue_june = chart_data.loc[chart_data["월(Month)"]=="6월", "당월 매출인식액(선수수익 감소)"].values[0]
-payment_may = chart_data.loc[chart_data["월(Month)"]=="5월", "총 결제발생액(선수수익 증가)"].values[0]
-revenue_may = chart_data.loc[chart_data["월(Month)"]=="5월", "당월 매출인식액(선수수익 감소)"].values[0]
+payment_april = chart_data.loc[chart_data["월(Month)"]=="4월", "총 결제발생액(선수수익 증가)"].values[0]
+revenue_april = chart_data.loc[chart_data["월(Month)"]=="4월", "당월 매출인식액(선수수익 감소)"].values[0]
+payment_march = chart_data.loc[chart_data["월(Month)"]=="3월", "총 결제발생액(선수수익 증가)"].values[0]
+revenue_march = chart_data.loc[chart_data["월(Month)"]=="3월", "당월 매출인식액(선수수익 감소)"].values[0]
 
 col1, col2 = st.columns([1, 2])
 with col1:
     # 단위 가독성을 억 원 단위로 직관적으로 변경
-    st.metric(label="6월 총 결제발생액 (B2C)", value=f"{payment_june:g}억원", delta=f"{payment_june - payment_may:g}억원 (전월 대비)")
-    st.metric(label="6월 실제 매출인식액", value=f"{revenue_june:g}억원", delta=f"{revenue_june - revenue_may:g}억원 (전월 대비)")
+    st.metric(label="4월 총 결제발생액 (B2C)", value=f"{payment_april:g}억원", delta=f"{payment_april - payment_may:g}억원 (전월 대비)")
+    st.metric(label="4월 실제 매출인식액", value=f"{revenue_april:g}억원", delta=f"{revenue_april - revenue_may:g}억원 (전월 대비)")
     
 with col2:
     # 이중 Y축을 지원하는 서브플롯 생성
