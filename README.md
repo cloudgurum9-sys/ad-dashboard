@@ -1,45 +1,43 @@
-# 📊 산업별 재무 건전성 및 이익의 질(Quality of Earnings) 자동화 대시보드
+# 📊 YBM 재무결산 및 PG정산 자동화 대시보드
 
-> **단순한 재무 지표 나열을 넘어 현금흐름 분석, 듀퐁 분석, 다면 평가(레이더 차트)부터 '자동 PDF 리포팅'까지, 회계/재무 실무 프로세스를 그대로 구현한 전문 분석 플랫폼입니다.**
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)
+![Pandas](https://img.shields.io/badge/Pandas-150458?style=for-the-badge&logo=pandas&logoColor=white)
+![Plotly](https://img.shields.io/badge/Plotly-3F4F75?style=for-the-badge&logo=plotly&logoColor=white)
 
-## 🚀 프로젝트 목표 및 가치
-본 프로젝트는 회계팀 및 재무팀의 핵심 실무 역량을 시각화하기 위해 기획되었습니다. 
-단순히 장부상 이익(영업이익)만 보는 것을 경계하고 1) 실제 현금흐름 기반의 리스크 탐지, 2) ROE의 근본 원인 분해, 3) 경영진 의사결정을 위한 산출물(Deliverable) 자동화** 역량을 증명하는 데 중점을 두었습니다.
+## 💡 프로젝트 개요
+본 프로젝트는 에듀테크 리딩 기업 **YBM의 비즈니스 특성(방대한 B2C 소액 결제, 선수수익 인식 구조)**을 반영하여 구축한 **재무결산 및 데이터 대사 모니터링 대시보드**입니다. 
+단순한 데이터 시각화를 넘어, 실제 재무팀의 **결산 리드타임 단축**과 **수작업(엑셀) 대사 과정의 비효율 및 오류**를 해결하는 데 목적이 있습니다.
 
-## 🔗 Live Demo
-[내 대시보드 접속하기](https://ad-dashboard-advtop5.streamlit.app/)
+- **URL:** [대시보드 바로가기 링크 삽입] *(※ Streamlit Cloud 등에 배포한 링크가 있다면 추가하세요)*
 
-## ✨ 핵심 기능 및 실무 적용 포인트
+---
 
-### 1. 현금흐름 기반 '이익의 질' 분석 (Accounting Focus)
-- 장부상 영업이익과 실제 기업에 유입된 영업활동현금흐름(OCF)을 대조 분석합니다.
-- 자체 지표인 '현금창출력(OCF/영업이익)'을 수치화하여, 흑자 도산 리스크나 매출채권 회수 지연 등의 재무적 위험을 직관적인 막대그래프로 탐지합니다.
+## 🔑 핵심 기능 및 비즈니스 임팩트
 
-### 2. 듀퐁 분석 (DuPont Analysis) 시각화 모델
-- 단일 지표인 ROE(자기자본이익률)를 **1) 수익성(순이익률)**, **2) 활동성(총자산회전율)**, **3) 재무구조(재무레버리지)** 3가지 동인(Driver)으로 분해하여 시각화했습니다.
-- 겉으로 보이는 이익률이 '우수한 영업 마진'에서 온 것인지, '과도한 부채 사용'에서 온 것인지 근본 원인을 도출합니다.
+### 1. B2C 결제액(선수수익) 및 당월 매출 대체 트래킹
+YBM의 핵심 회계 이슈인 '선수수익(수강료/응시료 선결제)'이 실제 기간 경과에 따라 '당월 매출'로 인식되는 흐름을 교차 추적합니다.
+- **주요 기능:** 월별 총 결제 발생액(부채 증가)과 당월 매출 인식액(부채 감소/매출 증가)을 이중 축 그래프(Bar & Line)로 시각화
+- **기대 효과:** 부서 간 결제 데이터 불일치 방지 및 직관적인 회사의 현금 흐름 및 실제 수익(매출) 현황 파악
 
-### 3. 육각형 기업 다면 평가 (Radar Chart)
-- 기업의 **수익성, 활동성, 안정성, 현금창출력, ROE** 5가지 핵심 재무 역량을 스케일링(Scaling)하여 방사형 그래프(거미줄 그래프)로 구현했습니다.
-- 동종 업계 내 기업들의 강점과 약점을 한눈에 파악하여, 재무적 '캐릭터'를 입체적으로 평가합니다.
+### 2. PG 정산 불일치 및 비용 대사 자동화 (이상치 탐지)
+수백만 건의 내부 ERP 매출 장부와 외부 PG사(결제대행사) 정산 내역을 파이썬 Pandas를 활용해 병합(Merge)하고 검증합니다.
+- **주요 기능:** 수수료율 오적용, 중복 환불, 강사료 원천세 오류, 교재 출고 누락 등 수작업으로 찾기 힘든 **차액 및 이상 데이터(Anomaly)**를 추출하여 집중 검토 리스트로 제공
+- **기대 효과:** 매월 반복되는 PG 대사 실무의 야근 최소화, 수수료 누수 방지 및 결산 마감 프로세스 효율화
 
-### 4. 자동 PDF 리포트 생성 (Reporting Automation)
-- 대시보드 상에서 분석된 핵심 재무 데이터를 원클릭으로 추출합니다.
-- `fpdf2` 라이브러리를 활용해 타 부서 및 경영진에게 즉시 공유 가능한 **A4 규격의 PDF 보고서**를 자동으로 렌더링하고 다운로드합니다.
+---
 
-### 5. 인터랙티브 시장 지표 트래킹
-- `Plotly`를 활용하여 여러 기업의 1년 주가 추이를 마우스 호버(Hover)만으로 비교할 수 있는 인터랙티브 차트를 제공합니다.
+## 🛠 기술 스택 (Tech Stack)
 
-## 🛠 Tech Stack
-- **Web Framework**: Streamlit
-- **Data Analysis**: Pandas, yfinance
-- **Visualization**: Plotly (Radar, Bar, Line), Matplotlib
-- **Document Automation**: fpdf2 (PDF 리포트 렌더링)
-- **Web Scraping**: BeautifulSoup4, Requests
+- **Language:** Python 3.x
+- **Web Framework:** Streamlit (웹 대시보드 UI 구현 및 라이트 테마 자동 설정)
+- **Data Manipulation:** Pandas (데이터 전처리, 결측치 처리, ERP/PG 데이터 Merge)
+- **Data Visualization:** Plotly Express / Graph_Objects (이중 Y축 차트, 파이 차트 등 동적 시각화)
 
-## 💡 주요 문제 해결 사례 (Troubleshooting)
-1. **서로 다른 단위의 지표 시각화 (Scaling)**: 레이더 차트 구현 시, 비율(%)과 배수(배) 등 단위가 다른 지표들을 하나의 차트에 담기 위해 0~100 사이의 값으로 자체 스케일링 로직을 설계하여 시각적 왜곡을 방지했습니다.
-2. **보고서 폰트 인코딩 오류 해결**: PDF 자동 생성 시 한글 폰트(`NanumGothic`) 깨짐 현상을 방지하기 위해 폰트 경로 매핑 및 Fallback 로직을 적용하여 안정적인 문서 출력을 구현했습니다.
+---
 
-## 🎯 회계/재무 직무 역량 어필
-> "재무제표의 숫자를 다루는 데이터 리터러시뿐만 아니라, 이를 다각도(현금흐름, 듀퐁, 레이더 차트)로 시각화하고 **최종 의사결정권자를 위한 문서(PDF)로 자동화해 내는 업무 효율화(RPA) 사고력**을 갖추었습니다."
+## 🚀 설치 및 실행 방법 (How to Run)
+
+1. **Repository 클론**
+```bash
+git clone [https://github.com/본인아이디/리포지토리이름.git](https://github.com/본인아이디/리포지토리이름.git)
