@@ -1,9 +1,5 @@
 # 📊 YBM 재무결산 및 PG정산 자동화 대시보드
 
-![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)
-![Pandas](https://img.shields.io/badge/Pandas-150458?style=for-the-badge&logo=pandas&logoColor=white)
-![Plotly](https://img.shields.io/badge/Plotly-3F4F75?style=for-the-badge&logo=plotly&logoColor=white)
 
 ## 💡 프로젝트 개요
 본 프로젝트는 에듀테크 리딩 기업 YBM의 비즈니스 특성(방대한 B2C 소액 결제, 선수수익 인식 구조)을 반영하여 구축한 **재무결산 및 데이터 대사 모니터링 대시보드**입니다. 
